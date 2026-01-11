@@ -40,7 +40,9 @@ RUN echo "Starting build..." && \
     echo "Build completed. Checking dist folder..." && \
     ls -la dist/ && \
     echo "Checking for main.js..." && \
-    test -f dist/main.js && echo "✓ dist/main.js exists" || (echo "✗ ERROR: dist/main.js not found!" && ls -la && exit 1) && \
+    (test -f dist/src/main.js && echo "✓ dist/src/main.js exists") || \
+    (test -f dist/main.js && echo "✓ dist/main.js exists") || \
+    (echo "✗ ERROR: main.js not found!" && find dist -name "main.js" && ls -la dist/ && exit 1) && \
     echo "Build verification successful!"
 
 # Create storage directory
@@ -53,5 +55,5 @@ EXPOSE ${PORT:-3001}
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:${PORT:-3001}/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-CMD ["node", "dist/main.js"]
+# Start the application (check both possible locations)
+CMD ["sh", "-c", "if [ -f dist/src/main.js ]; then node dist/src/main.js; elif [ -f dist/main.js ]; then node dist/main.js; else echo 'ERROR: main.js not found!' && find dist -name 'main.js' && exit 1; fi"]
