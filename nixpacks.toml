@@ -1,5 +1,8 @@
+[providers]
+node = "20"
+
 [phases.setup]
-nixPkgs = ["nodejs-20_x", "chromium"]
+nixPkgs = ["chromium"]
 
 [phases.install]
 cmds = [
@@ -22,4 +25,3 @@ cmd = "node dist/src/main.js"
 NODE_ENV = "production"
 PUPPETEER_SKIP_DOWNLOAD = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-
