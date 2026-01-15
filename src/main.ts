@@ -2,12 +2,20 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
+  // Ensure storage directories exist at runtime
+  const storagePath = process.env.STORAGE_PATH || './storage';
+  const invoicesDir = join(process.cwd(), storagePath, 'invoices');
+  if (!existsSync(invoicesDir)) {
+    mkdirSync(invoicesDir, { recursive: true });
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Health check endpoint (for AWS/container health checks)
@@ -111,7 +119,6 @@ async function bootstrap() {
   });
 
   // Serve static files from storage directory
-  const storagePath = process.env.STORAGE_PATH || './storage';
   app.useStaticAssets(join(process.cwd(), storagePath), {
     prefix: '/storage/',
   });
