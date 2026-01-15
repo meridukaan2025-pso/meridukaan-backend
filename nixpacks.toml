@@ -18,9 +18,6 @@ cmds = [
 [start]
 cmd = "node dist/src/main.js"
 
-[providers]
-node = "20"
-
 [variables]
 NODE_ENV = "production"
 PUPPETEER_SKIP_DOWNLOAD = "true"
