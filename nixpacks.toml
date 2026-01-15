@@ -1,5 +1,4 @@
-[providers]
-node = "20"
+providers = ["node"]
 
 [phases.setup]
 nixPkgs = ["chromium"]
@@ -19,9 +18,10 @@ cmds = [
 ]
 
 [start]
-cmd = "node dist/src/main.js"
+cmd = "npx prisma migrate deploy && node dist/src/main.js"
 
 [variables]
 NODE_ENV = "production"
+NIXPACKS_NODE_VERSION = "20"
 PUPPETEER_SKIP_DOWNLOAD = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
