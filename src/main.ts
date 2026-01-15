@@ -50,18 +50,28 @@ async function bootstrap() {
     });
   });
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS with environment variable support
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
+  const corsEnabled = process.env.CORS_ENABLED !== 'false';
+  
+  if (corsEnabled) {
+    app.enableCors({
+      origin: corsOrigin === '*' ? true : corsOrigin.split(',').map(o => o.trim()),
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    });
+  }
 
   const port = process.env.PORT || 3001;
 
   // Swagger Configuration
+  // Note: We don't add hardcoded servers here - they're added dynamically in /api-docs-json
+  // This ensures Swagger UI always uses the correct production URL
   const config = new DocumentBuilder()
     .setTitle('Meri Dukaan POS + Admin Analytics API')
     .setDescription('Complete API documentation for Meri Dukaan Point of Sale system with Admin Analytics')
     .setVersion('1.0.0')
-    .addServer(process.env.NGROK_URL || `http://localhost:${port}`, 'Current server')
-    .addServer(`http://localhost:${port}`, 'Local development')
     .addBearerAuth(
       {
         type: 'http',
@@ -84,16 +94,17 @@ async function bootstrap() {
     swaggerOptions: {
       persistAuthorization: true, // Keep token after page refresh
       defaultModelsExpandDepth: -1, // Hide schemas section
-      url: '/api-docs-json', // Use our custom endpoint
+      url: '/api-docs-json', // Use our custom endpoint that dynamically sets server URLs
     },
     customSiteTitle: 'Meri Dukaan API Docs',
     customCss: '.swagger-ui .topbar { display: none }',
   });
   
   // Override the Swagger JSON endpoint to dynamically set server URL based on request
+  // This ensures Swagger UI always uses the correct URL (production or local)
   // This must be registered AFTER SwaggerModule.setup() to take precedence
   httpAdapter.get('/api-docs-json', (req: any, res: any) => {
-    // Detect protocol from request headers (handles ngrok and reverse proxies)
+    // Detect protocol from request headers (handles ngrok, Railway, and reverse proxies)
     let protocol = 'http';
     if (req.headers['x-forwarded-proto']) {
       protocol = req.headers['x-forwarded-proto'].split(',')[0].trim();
@@ -103,16 +114,31 @@ async function bootstrap() {
       protocol = 'https';
     }
     
+    // Get host from request headers (handles production domains correctly)
     const host = req.headers.host || `localhost:${port}`;
     const baseUrl = `${protocol}://${host}`;
+    
+    // Determine if we're running locally
+    // Check if host is localhost, 127.0.0.1, or a local IP (not a production domain)
+    const isLocalhost = 
+      host.includes('localhost') || 
+      host.includes('127.0.0.1') || 
+      host.startsWith('0.0.0.0') ||
+      /^192\.168\.|^10\.|^172\.(1[6-9]|2[0-9]|3[01])\./.test(host.split(':')[0]); // Private IP ranges
+    
+    // Build servers array - always put current server first (this is what Swagger UI will use)
+    const servers = [{ url: baseUrl, description: 'Current server' }];
+    
+    // Only add localhost server option if we're actually running locally
+    // This prevents showing localhost:8080 or localhost:3001 in production Swagger UI dropdown
+    if (isLocalhost) {
+      servers.push({ url: `http://localhost:${port}`, description: 'Local development (alternative)' });
+    }
     
     // Clone document and update servers dynamically
     const dynamicDocument = {
       ...document,
-      servers: [
-        { url: baseUrl, description: 'Current server' },
-        { url: `http://localhost:${port}`, description: 'Local development' },
-      ],
+      servers: servers,
     };
     
     res.json(dynamicDocument);
