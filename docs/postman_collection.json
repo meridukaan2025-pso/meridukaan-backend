@@ -1,8 +1,9 @@
 {
   "info": {
-    "name": "Meri Dukaan POS + Admin Analytics",
-    "description": "API collection for Meri Dukaan POS and Admin Analytics endpoints",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Meri Dukaan Backend API",
+    "description": "Complete API collection for Meri Dukaan POS, User Management, and Admin Analytics endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
   },
   "variable": [
     {
@@ -26,7 +27,12 @@
       "type": "string"
     },
     {
-      "key": "workerId",
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
       "value": "",
       "type": "string"
     },
@@ -38,6 +44,39 @@
   ],
   "item": [
     {
+      "name": "Public APIs",
+      "item": [
+        {
+          "name": "Get All Stores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stores",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores"]
+            },
+            "description": "Get list of all stores. Public endpoint - no authentication required. Use this to get store IDs for user signup."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.collectionVariables.set('storeId', jsonData[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Authentication",
       "item": [
         {
@@ -47,13 +86,16 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200) {",
                   "    const jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('token', jsonData.access_token);",
                   "    if (jsonData.user.role === 'ADMIN') {",
                   "        pm.collectionVariables.set('adminToken', jsonData.access_token);",
                   "    }",
-                  "    pm.collectionVariables.set('workerId', jsonData.user.id);",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    if (jsonData.user.storeId) {",
+                  "        pm.collectionVariables.set('storeId', jsonData.user.storeId);",
+                  "    }",
                   "}"
                 ]
               }
@@ -75,7 +117,8 @@
               "raw": "{{baseUrl}}/auth/login",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
-            }
+            },
+            "description": "Authenticate user and receive JWT token"
           }
         },
         {
@@ -85,9 +128,11 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200) {",
                   "    const jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('adminToken', jsonData.access_token);",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
                   "}"
                 ]
               }
@@ -109,7 +154,168 @@
               "raw": "{{baseUrl}}/auth/login",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
+            },
+            "description": "Login as admin user"
+          }
+        },
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    if (jsonData.user.role === 'ADMIN') {",
+                  "        pm.collectionVariables.set('adminToken', jsonData.access_token);",
+                  "    }",
+                  "    if (jsonData.user.storeId) {",
+                  "        pm.collectionVariables.set('storeId', jsonData.user.storeId);",
+                  "    }",
+                  "}"
+                ]
+              }
             }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeId\": \"{{storeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            },
+            "description": "Create a new user account and receive JWT token. Store ID is required for SALES role. First call GET /stores to get a store ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management (Admin Only)",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Retrieve a list of all users. Requires ADMIN role."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0 && !pm.collectionVariables.get('userId')) {",
+                  "        pm.collectionVariables.set('userId', jsonData[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Retrieve a specific user by their ID. Requires ADMIN role."
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"updated@meridukaan.com\",\n  \"role\": \"SALES\",\n  \"storeId\": \"{{storeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Update user information. All fields are optional. Requires ADMIN role. Store ID is required if role is SALES."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Delete a user by ID. Requires ADMIN role."
           }
         }
       ]
@@ -133,17 +339,44 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"qrValue\": \"COKE-330ML\"\n}"
+              "raw": "{\n  \"qrValue\": \"COKE-330ML\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/pos/scan",
               "host": ["{{baseUrl}}"],
               "path": ["pos", "scan"]
+            },
+            "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('productId', jsonData.product.id);",
+                  "}"
+                ]
+              }
             }
-          }
+          ]
         },
         {
           "name": "Create Invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('invoiceId', jsonData.invoiceId);",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -156,19 +389,21 @@
                 "value": "application/json"
               },
               {
-                "key": "Idempotency-Key",
-                "value": "optional-unique-key-{{$randomUUID}}"
+                "key": "idempotency-key",
+                "value": "unique-key-{{$randomUUID}}",
+                "description": "Optional: Prevents duplicate invoices"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"workerId\": \"{{workerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 5\n    }\n  ],\n  \"clientInvoiceRef\": \"REF-{{$randomInt}}\"\n}"
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 5\n    }\n  ],\n  \"clientInvoiceRef\": \"INV-{{$randomInt}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/pos/invoices",
               "host": ["{{baseUrl}}"],
               "path": ["pos", "invoices"]
-            }
+            },
+            "description": "Create a new invoice with items. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Worker ID is automatically set to your user ID. For SALES users, storeId is auto-set. For ADMIN users, you can optionally specify storeId in the request body."
           }
         },
         {
@@ -188,10 +423,11 @@
               "variable": [
                 {
                   "key": "invoiceId",
-                  "value": ""
+                  "value": "{{invoiceId}}"
                 }
               ]
-            }
+            },
+            "description": "Retrieve full invoice details including all items. Accessible by SALES, ADMIN, and INVENTORY roles."
           }
         },
         {
@@ -211,10 +447,11 @@
               "variable": [
                 {
                   "key": "invoiceId",
-                  "value": ""
+                  "value": "{{invoiceId}}"
                 }
               ]
-            }
+            },
+            "description": "Download invoice PDF file. Accessible by SALES, ADMIN, and INVENTORY roles."
           }
         }
       ]
@@ -236,7 +473,8 @@
               "raw": "{{baseUrl}}/admin/filters",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "filters"]
-            }
+            },
+            "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, categories, manufacturers)."
           }
         },
         {
@@ -250,50 +488,59 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/summary?from=2024-01-01&to=2024-12-31",
+              "raw": "{{baseUrl}}/admin/analytics/summary?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "summary"],
               "query": [
                 {
                   "key": "from",
-                  "value": "2024-01-01"
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
                   "key": "to",
-                  "value": "2024-12-31"
-                },
-                {
-                  "key": "region",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "city",
-                  "value": "",
-                  "disabled": true
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
                 },
                 {
                   "key": "storeId",
                   "value": "",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Filter by store ID"
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by region"
+                },
+                {
+                  "key": "city",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by city"
                 },
                 {
                   "key": "categoryId",
                   "value": "",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Filter by category ID"
                 },
                 {
                   "key": "manufacturerId",
                   "value": "",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Filter by manufacturer ID"
                 },
                 {
                   "key": "brandId",
                   "value": "",
-                  "disabled": true
+                  "disabled": true,
+                  "description": "Filter by brand ID"
                 }
               ]
-            }
+            },
+            "description": "Get summary metrics for admin dashboard (total sales, invoices, AOV, distribution, etc.). All query parameters are optional."
           }
         },
         {
@@ -307,25 +554,38 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/sales-trend?from=2024-01-01&to=2024-12-31&bucket=daily",
+              "raw": "{{baseUrl}}/admin/analytics/sales-trend?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "sales-trend"],
               "query": [
                 {
                   "key": "from",
-                  "value": "2024-01-01"
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
                   "key": "to",
-                  "value": "2024-12-31"
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
                 },
                 {
-                  "key": "bucket",
-                  "value": "daily",
-                  "description": "daily or weekly"
+                  "key": "storeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "city",
+                  "value": "",
+                  "disabled": true
                 }
               ]
-            }
+            },
+            "description": "Get sales trends over time. All query parameters are optional."
           }
         },
         {
@@ -339,20 +599,41 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/brand-distribution?from=2024-01-01&to=2024-12-31",
+              "raw": "{{baseUrl}}/admin/analytics/brand-distribution?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "brand-distribution"],
               "query": [
                 {
                   "key": "from",
-                  "value": "2024-01-01"
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
                   "key": "to",
-                  "value": "2024-12-31"
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "brandId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by brand ID"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by category ID"
+                },
+                {
+                  "key": "manufacturerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by manufacturer ID"
                 }
               ]
-            }
+            },
+            "description": "Get brand performance and distribution metrics. All query parameters are optional."
           }
         },
         {
@@ -366,25 +647,41 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/market-share?metric=value&from=2024-01-01&to=2024-12-31",
+              "raw": "{{baseUrl}}/admin/analytics/market-share?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "market-share"],
               "query": [
                 {
-                  "key": "metric",
-                  "value": "value",
-                  "description": "value or volume"
-                },
-                {
                   "key": "from",
-                  "value": "2024-01-01"
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
                   "key": "to",
-                  "value": "2024-12-31"
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by region"
+                },
+                {
+                  "key": "city",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by city"
+                },
+                {
+                  "key": "brandId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by brand ID"
                 }
               ]
-            }
+            },
+            "description": "Get market share analysis. All query parameters are optional."
           }
         },
         {
@@ -398,24 +695,35 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/brands?page=1&pageSize=10&sort=salesValue",
+              "raw": "{{baseUrl}}/admin/analytics/brands?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "brands"],
               "query": [
                 {
-                  "key": "page",
-                  "value": "1"
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
-                  "key": "pageSize",
-                  "value": "10"
+                  "key": "to",
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
                 },
                 {
-                  "key": "sort",
-                  "value": "salesValue"
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by category ID"
+                },
+                {
+                  "key": "manufacturerId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by manufacturer ID"
                 }
               ]
-            }
+            },
+            "description": "Get brand analytics. All query parameters are optional."
           }
         },
         {
@@ -429,28 +737,44 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/analytics/top-skus?limit=10&from=2024-01-01&to=2024-12-31",
+              "raw": "{{baseUrl}}/admin/analytics/top-skus?from=2026-01-01&to=2026-01-31",
               "host": ["{{baseUrl}}"],
               "path": ["admin", "analytics", "top-skus"],
               "query": [
                 {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
                   "key": "from",
-                  "value": "2024-01-01"
+                  "value": "2026-01-01",
+                  "description": "Start date (YYYY-MM-DD)"
                 },
                 {
                   "key": "to",
-                  "value": "2024-12-31"
+                  "value": "2026-01-31",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "storeId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by store ID"
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by region"
+                },
+                {
+                  "key": "city",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by city"
                 }
               ]
-            }
+            },
+            "description": "Get top selling products (SKUs). All query parameters are optional."
           }
         }
       ]
     }
   ]
 }
-
