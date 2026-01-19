@@ -55,23 +55,6 @@ export class PosController {
         stockQty: { type: 'number', example: 100, description: 'Available stock quantity' },
       },
     },
-    examples: {
-      'Success Response': {
-        value: {
-          product: {
-            id: '42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d',
-            sku: 'COKE-330ML',
-            name: 'Coca-Cola 330ml',
-            unitPrice: '35.00',
-            unitSizeMl: 330,
-            category: 'Soft Drinks',
-            brand: 'Coca-Cola',
-            manufacturer: 'The Coca-Cola Company',
-          },
-          stockQty: 100,
-        },
-      },
-    },
   })
   @ApiResponse({ 
     status: 400, 
@@ -95,17 +78,6 @@ export class PosController {
         sku: { type: 'string', example: 'COKE-330ML', description: 'Scanned SKU/barcode' },
         suggestion: { type: 'string', example: 'Use POST /products/quick-create to add this product manually' },
         endpoint: { type: 'string', example: '/products/quick-create' },
-      },
-    },
-    examples: {
-      'Product Not Found': {
-        value: {
-          statusCode: 404,
-          message: 'Product with SKU UNKNOWN-123 not found',
-          sku: 'UNKNOWN-123',
-          suggestion: 'Use POST /products/quick-create to add this product manually',
-          endpoint: '/products/quick-create',
-        },
       },
     },
   })
@@ -178,19 +150,6 @@ export class PosController {
         createdAt: { type: 'string', example: '2026-01-19T18:00:00.000Z' },
       },
     },
-    examples: {
-      'Invoice Created': {
-        value: {
-          invoiceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          pdfUrl: '/storage/invoices/a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf',
-          totals: {
-            amount: '175.00',
-            items: 5,
-          },
-          createdAt: '2026-01-19T18:00:00.000Z',
-        },
-      },
-    },
   })
   @ApiResponse({ 
     status: 400, 
@@ -202,21 +161,7 @@ export class PosController {
         message: { 
           type: 'string', 
           example: 'One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507',
-          description: 'Error message indicating which product IDs are missing or stock issues',
-        },
-      },
-    },
-    examples: {
-      'Product Not Found': {
-        value: {
-          statusCode: 400,
-          message: 'One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507',
-        },
-      },
-      'Insufficient Stock': {
-        value: {
-          statusCode: 400,
-          message: 'Insufficient stock for product COKE-330ML. Available: 5, Requested: 10',
+          description: 'Error message indicating which product IDs are missing or stock issues. Example: "One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507" or "Insufficient stock for product COKE-330ML. Available: 5, Requested: 10"',
         },
       },
     },
