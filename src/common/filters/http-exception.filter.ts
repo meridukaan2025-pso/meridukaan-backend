@@ -27,12 +27,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error';
 
+    // Handle structured error responses (e.g., from NotFoundException with object)
+    let errorMessage = message;
+    let errorDetails = {};
+    
+    if (typeof message === 'object' && message !== null) {
+      if ((message as any).message) {
+        errorMessage = (message as any).message;
+        // Include additional fields from the error object
+        const { message: _, ...rest } = message as any;
+        errorDetails = rest;
+      }
+    }
+
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
-      message: typeof message === 'string' ? message : (message as any).message || message,
+      message: errorMessage,
+      ...errorDetails,
     };
 
     this.logger.error(

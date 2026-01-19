@@ -27,7 +27,12 @@ export class PosService {
     });
 
     if (!product) {
-      throw new NotFoundException(`Product with SKU ${qrValue} not found`);
+      throw new NotFoundException({
+        message: `Product with SKU ${qrValue} not found`,
+        sku: qrValue,
+        suggestion: 'Use POST /products/quick-create to add this product manually',
+        endpoint: '/products/quick-create',
+      });
     }
 
     const inventory = await this.prisma.inventory.findUnique({

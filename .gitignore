@@ -73,6 +73,9 @@ docs/markdown/
 *.temp
 .cache/
 
+# Test scripts
+test-all-apis.js
+
 # Database
 *.db
 *.sqlite

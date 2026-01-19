@@ -25,6 +25,10 @@
       "description": "User authentication endpoints"
     },
     {
+      "name": "Stores",
+      "description": "Store information endpoints"
+    },
+    {
       "name": "POS",
       "description": "Point of Sale operations"
     },
@@ -90,6 +94,44 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          }
+        }
+      },
+      "Store": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store UUID"
+          },
+          "name": {
+            "type": "string",
+            "example": "Store Karachi Central",
+            "description": "Store name"
+          },
+          "region": {
+            "type": "string",
+            "example": "Sindh",
+            "description": "Store region"
+          },
+          "city": {
+            "type": "string",
+            "example": "Karachi",
+            "description": "Store city"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T10:00:00.000Z",
+            "description": "Store creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T10:00:00.000Z",
+            "description": "Store last update timestamp"
           }
         }
       },
@@ -634,6 +676,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stores": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "Get all stores",
+        "description": "Retrieve a list of all stores. Public endpoint - no authentication required. Use this to get store IDs for user signup.",
+        "operationId": "getAllStores",
+        "responses": {
+          "200": {
+            "description": "List of stores retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Store"
+                  }
                 }
               }
             }

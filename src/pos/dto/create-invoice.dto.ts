@@ -22,8 +22,8 @@ class InvoiceItemDto {
 
 export class CreateInvoiceDto {
   @ApiPropertyOptional({
-    example: '4158f662-9e15-42ef-9c4e-345b9465693c',
-    description: 'Store UUID (optional for ADMIN, automatically uses your assigned store for SALES users)',
+    description: 'Store UUID (optional). Automatically set for SALES users.',
+    required: false,
   })
   @IsOptional()
   @IsUUID()

@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { UsersModule } from './users/users.module';
 import { StoresModule } from './stores/stores.module';
+import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -24,6 +25,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     WebSocketModule,
     UsersModule,
     StoresModule,
+    ProductsModule,
   ],
   providers: [
     {

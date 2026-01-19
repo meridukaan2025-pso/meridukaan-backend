@@ -8,8 +8,9 @@ import {
   Res,
   HttpStatus,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PosService } from './pos.service';
 import { ScanDto } from './dto/scan.dto';
@@ -42,18 +43,18 @@ export class PosController {
     if (user.role === UserRole.SALES) {
       // SALES users must use their assigned store
       if (!user.storeId) {
-        throw new Error('User is not assigned to a store. Please contact administrator.');
+        throw new BadRequestException('User is not assigned to a store. Please contact administrator.');
       }
       storeId = user.storeId;
     } else if (user.role === UserRole.ADMIN) {
       // ADMIN can use their assigned store if they have one
       // For now, ADMIN must have a storeId assigned (can be updated later to allow store selection)
       if (!user.storeId) {
-        throw new Error('Store ID is required. ADMIN users must be assigned to a store or specify storeId.');
+        throw new BadRequestException('Store ID is required. ADMIN users must be assigned to a store or specify storeId.');
       }
       storeId = user.storeId;
     } else {
-      throw new Error('Unauthorized: Only SALES and ADMIN users can scan products.');
+      throw new BadRequestException('Unauthorized: Only SALES and ADMIN users can scan products.');
     }
     
     return this.posService.scanProduct(storeId, scanDto.qrValue);
@@ -61,13 +62,35 @@ export class PosController {
 
   @Post('invoices')
   @Roles(UserRole.SALES, UserRole.ADMIN)
+  @ApiHeader({
+    name: 'idempotency-key',
+    description: 'Optional: Unique key to prevent duplicate invoices',
+    required: false,
+  })
   @ApiOperation({ 
     summary: 'Create invoice', 
-    description: 'Create a new invoice with items. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Worker ID is automatically set to your user ID.' 
+    description: 'Create a new invoice with items. Store ID and Worker ID are automatically set.' 
+  })
+  @ApiBody({
+    description: 'Invoice creation request',
+    examples: {
+      'Example Request': {
+        value: {
+          items: [
+            {
+              productId: '42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d',
+              qty: 5
+            }
+          ],
+          clientInvoiceRef: 'INV-2026-001'
+        }
+      }
+    }
   })
   @ApiResponse({ status: 201, description: 'Invoice created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid request, insufficient stock, or user not assigned to a store' })
+  @ApiResponse({ status: 400, description: 'Invalid request or insufficient stock' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async createInvoice(
     @Body() createInvoiceDto: CreateInvoiceDto,
     @Headers('idempotency-key') idempotencyKey: string,
@@ -79,13 +102,13 @@ export class PosController {
     if (user.role === UserRole.SALES) {
       // SALES users must use their assigned store
       if (!user.storeId) {
-        throw new Error('User is not assigned to a store. Please contact administrator.');
+        throw new BadRequestException('User is not assigned to a store. Please contact administrator.');
       }
       storeId = user.storeId;
       
       // If storeId is provided in request, validate it matches user's store
       if (createInvoiceDto.storeId && createInvoiceDto.storeId !== user.storeId) {
-        throw new Error('SALES users can only create invoices for their assigned store.');
+        throw new BadRequestException('SALES users can only create invoices for their assigned store.');
       }
     } else if (user.role === UserRole.ADMIN) {
       // ADMIN can specify storeId or use their assigned store if they have one
@@ -94,10 +117,10 @@ export class PosController {
       } else if (user.storeId) {
         storeId = user.storeId;
       } else {
-        throw new Error('Store ID is required. Please specify storeId in the request.');
+        throw new BadRequestException('Store ID is required. Please specify storeId in the request.');
       }
     } else {
-      throw new Error('Unauthorized: Only SALES and ADMIN users can create invoices.');
+      throw new BadRequestException('Unauthorized: Only SALES and ADMIN users can create invoices.');
     }
 
     // Worker ID is always the current user

@@ -47,6 +47,13 @@ async function bootstrap() {
           update: `http://${req.headers.host}/users/:id`,
           delete: `http://${req.headers.host}/users/:id`,
         },
+        products: {
+          quickCreate: `http://${req.headers.host}/products/quick-create`,
+          create: `http://${req.headers.host}/products`,
+          getBySku: `http://${req.headers.host}/products/sku/:sku`,
+          list: `http://${req.headers.host}/products`,
+          note: 'Quick-create automatically creates category/brand/manufacturer if not exists',
+        },
         pos: {
           scan: `http://${req.headers.host}/pos/scan`,
           createInvoice: `http://${req.headers.host}/pos/invoices`,
@@ -97,6 +104,7 @@ async function bootstrap() {
     .addTag('Authentication', 'User authentication endpoints')
     .addTag('Stores', 'Store information endpoints')
     .addTag('Users', 'User management endpoints (ADMIN only)')
+    .addTag('Products', 'Product management endpoints')
     .addTag('POS', 'Point of Sale operations')
     .addTag('Admin', 'Admin analytics and dashboard endpoints')
     .build();

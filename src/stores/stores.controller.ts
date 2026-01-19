@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StoresService } from './stores.service';
 import { Public } from '../common/decorators/public.decorator';
+import { StoreResponseDto } from './dto/store-response.dto';
 
 @ApiTags('Stores')
 @Controller('stores')
@@ -17,22 +18,9 @@ export class StoresController {
   @ApiResponse({ 
     status: 200, 
     description: 'List of stores retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
-          name: { type: 'string', example: 'Store Karachi Central' },
-          region: { type: 'string', example: 'Sindh' },
-          city: { type: 'string', example: 'Karachi' },
-          createdAt: { type: 'string', format: 'date-time' },
-          updatedAt: { type: 'string', format: 'date-time' },
-        },
-      },
-    },
+    type: [StoreResponseDto],
   })
-  async findAll() {
+  async findAll(): Promise<StoreResponseDto[]> {
     return this.storesService.findAll();
   }
 }
