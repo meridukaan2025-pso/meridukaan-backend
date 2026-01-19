@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Meri Dukaan Backend API",
-    "description": "Complete API collection for Meri Dukaan POS, User Management, and Admin Analytics endpoints",
+    "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "variable": [
     {
@@ -316,6 +316,153 @@
               ]
             },
             "description": "Delete a user by ID. Requires ADMIN role."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Retrieve a list of all products with their category, brand, and manufacturer details. Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0 && !pm.collectionVariables.get('productId')) {",
+                  "        pm.collectionVariables.set('productId', jsonData[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by SKU",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/sku/COKE-330ML",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "sku", "COKE-330ML"]
+            },
+            "description": "Retrieve a product by its SKU (barcode). Accessible by all authenticated users. Use this to verify if a product exists before scanning."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('productId', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quick Create Product (POS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('productId', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"NEW-PRODUCT-001\",\n  \"name\": \"New Product Name\",\n  \"categoryName\": \"Soft Drinks\",\n  \"brandName\": \"New Brand\",\n  \"manufacturerName\": \"New Manufacturer\",\n  \"unitPrice\": 50.00,\n  \"unitSizeMl\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/quick-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "quick-create"]
+            },
+            "description": "Quickly create a product when barcode doesn't match. Automatically creates category, brand, and manufacturer if they don't exist. Requires SALES or ADMIN role. Use this when scanning an unknown barcode - SKU will be pre-filled from scan error."
+          }
+        },
+        {
+          "name": "Create Product (Full)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('productId', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"PRODUCT-001\",\n  \"name\": \"Product Name\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"brandId\": \"{{brandId}}\",\n  \"manufacturerId\": \"{{manufacturerId}}\",\n  \"unitPrice\": 50.00,\n  \"unitSizeMl\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. All category, brand, and manufacturer IDs must exist. Use GET /admin/filters to get available IDs."
           }
         }
       ]
