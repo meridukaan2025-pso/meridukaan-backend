@@ -137,16 +137,12 @@
       },
       "ScanRequest": {
         "type": "object",
-        "required": ["storeId", "qrValue"],
+        "required": ["qrValue"],
         "properties": {
-          "storeId": {
-            "type": "string",
-            "format": "uuid",
-            "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
-          },
           "qrValue": {
             "type": "string",
-            "example": "COKE-330ML"
+            "example": "COKE-330ML",
+            "description": "QR code value (Product SKU). Store ID is automatically taken from your assigned store."
           }
         }
       },
@@ -218,29 +214,25 @@
       },
       "CreateInvoiceRequest": {
         "type": "object",
-        "required": ["storeId", "workerId", "items"],
+        "required": ["items"],
         "properties": {
           "storeId": {
             "type": "string",
             "format": "uuid",
-            "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
-          },
-          "workerId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Must be a SALES user ID",
-            "example": "e8e79c5a-016d-49ef-9186-7eb34583762e"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Optional. Automatically set from your assigned store for SALES users. Required for ADMIN users if not assigned to a store."
           },
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InvoiceItemRequest"
             },
-            "minItems": 1
+            "minItems": 1,
+            "description": "Array of invoice items"
           },
           "clientInvoiceRef": {
             "type": "string",
-            "description": "Optional client reference",
+            "description": "Optional client invoice reference",
             "example": "INV-2026-001"
           }
         }
@@ -710,7 +702,7 @@
       "post": {
         "tags": ["POS"],
         "summary": "Scan product QR code",
-        "description": "Scan QR code (SKU) and get product details with available stock",
+        "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or your assigned store (ADMIN users). Only qrValue is required in the request body.",
         "operationId": "scanProduct",
         "security": [
           {
@@ -765,7 +757,7 @@
       "post": {
         "tags": ["POS"],
         "summary": "Create invoice",
-        "description": "Create a new invoice with items. This is a transactional operation that:\n- Validates store and worker\n- Locks inventory\n- Checks stock availability\n- Creates invoice and items\n- Updates inventory\n- Generates PDF\n- Emits WebSocket events",
+        "description": "Create a new invoice with items. Store ID and Worker ID are automatically set from your user account. For SALES users, storeId is auto-set from assigned store. For ADMIN users, storeId can be optionally specified or uses assigned store. Worker ID is always set to current user. This is a transactional operation that validates store and worker, locks inventory, checks stock availability, creates invoice and items, updates inventory, generates PDF, and emits WebSocket events.",
         "operationId": "createInvoice",
         "security": [
           {

@@ -3,7 +3,7 @@
     "name": "Meri Dukaan Backend API",
     "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.2.0"
+    "version": "2.3.0"
   },
   "variable": [
     {
@@ -493,7 +493,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["pos", "scan"]
             },
-            "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Use the product.id from the response when creating invoices."
+            "description": "Scan QR code (SKU) and get product details with available stock. Only qrValue is required in the request body. Store ID is automatically taken from your assigned store (SALES users) or your assigned store (ADMIN users). Use the product.id from the response when creating invoices."
           },
           "response": [
             {
