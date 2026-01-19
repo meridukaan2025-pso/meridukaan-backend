@@ -31,11 +31,84 @@ export class PosController {
   @Roles(UserRole.SALES, UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Scan product QR code', 
-    description: 'Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users).' 
+    description: 'Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Use the product.id from the response when creating invoices.' 
   })
-  @ApiResponse({ status: 200, description: 'Product found' })
-  @ApiResponse({ status: 400, description: 'Invalid request or user not assigned to a store' })
-  @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Product found',
+    schema: {
+      type: 'object',
+      properties: {
+        product: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d', description: 'Use this product ID in invoice creation' },
+            sku: { type: 'string', example: 'COKE-330ML' },
+            name: { type: 'string', example: 'Coca-Cola 330ml' },
+            unitPrice: { type: 'string', example: '35.00' },
+            unitSizeMl: { type: 'number', example: 330, nullable: true },
+            category: { type: 'string', example: 'Soft Drinks' },
+            brand: { type: 'string', example: 'Coca-Cola' },
+            manufacturer: { type: 'string', example: 'The Coca-Cola Company' },
+          },
+        },
+        stockQty: { type: 'number', example: 100, description: 'Available stock quantity' },
+      },
+    },
+    examples: {
+      'Success Response': {
+        value: {
+          product: {
+            id: '42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d',
+            sku: 'COKE-330ML',
+            name: 'Coca-Cola 330ml',
+            unitPrice: '35.00',
+            unitSizeMl: 330,
+            category: 'Soft Drinks',
+            brand: 'Coca-Cola',
+            manufacturer: 'The Coca-Cola Company',
+          },
+          stockQty: 100,
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid request or user not assigned to a store',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'string', example: 'User is not assigned to a store' },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Product not found - use POST /products/quick-create to add this product',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Product with SKU COKE-330ML not found' },
+        sku: { type: 'string', example: 'COKE-330ML', description: 'Scanned SKU/barcode' },
+        suggestion: { type: 'string', example: 'Use POST /products/quick-create to add this product manually' },
+        endpoint: { type: 'string', example: '/products/quick-create' },
+      },
+    },
+    examples: {
+      'Product Not Found': {
+        value: {
+          statusCode: 404,
+          message: 'Product with SKU UNKNOWN-123 not found',
+          sku: 'UNKNOWN-123',
+          suggestion: 'Use POST /products/quick-create to add this product manually',
+          endpoint: '/products/quick-create',
+        },
+      },
+    },
+  })
   async scan(@Body() scanDto: ScanDto, @CurrentUser() user: any) {
     // Determine storeId based on user role
     let storeId: string;
@@ -87,10 +160,69 @@ export class PosController {
       }
     }
   })
-  @ApiResponse({ status: 201, description: 'Invoice created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid request or insufficient stock' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Invoice created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        invoiceId: { type: 'string', example: 'invoice-uuid-123' },
+        pdfUrl: { type: 'string', example: '/storage/invoices/invoice-uuid-123.pdf', nullable: true },
+        totals: {
+          type: 'object',
+          properties: {
+            amount: { type: 'string', example: '175.00' },
+            items: { type: 'number', example: 5 },
+          },
+        },
+        createdAt: { type: 'string', example: '2026-01-19T18:00:00.000Z' },
+      },
+    },
+    examples: {
+      'Invoice Created': {
+        value: {
+          invoiceId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          pdfUrl: '/storage/invoices/a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf',
+          totals: {
+            amount: '175.00',
+            items: 5,
+          },
+          createdAt: '2026-01-19T18:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid request, insufficient stock, or product not found',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { 
+          type: 'string', 
+          example: 'One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507',
+          description: 'Error message indicating which product IDs are missing or stock issues',
+        },
+      },
+    },
+    examples: {
+      'Product Not Found': {
+        value: {
+          statusCode: 400,
+          message: 'One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507',
+        },
+      },
+      'Insufficient Stock': {
+        value: {
+          statusCode: 400,
+          message: 'Insufficient stock for product COKE-330ML. Available: 5, Requested: 10',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing token' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async createInvoice(
     @Body() createInvoiceDto: CreateInvoiceDto,
     @Headers('idempotency-key') idempotencyKey: string,

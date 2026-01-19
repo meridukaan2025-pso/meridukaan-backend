@@ -3,7 +3,7 @@
     "name": "Meri Dukaan Backend API",
     "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.1.0"
+    "version": "2.2.0"
   },
   "variable": [
     {
@@ -493,8 +493,82 @@
               "host": ["{{baseUrl}}"],
               "path": ["pos", "scan"]
             },
-            "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users)."
+            "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Use the product.id from the response when creating invoices."
           },
+          "response": [
+            {
+              "name": "Success - Product Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qrValue\": \"COKE-330ML\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/pos/scan",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pos", "scan"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"product\": {\n    \"id\": \"42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d\",\n    \"sku\": \"COKE-330ML\",\n    \"name\": \"Coca-Cola 330ml\",\n    \"unitPrice\": \"35.00\",\n    \"unitSizeMl\": 330,\n    \"category\": \"Soft Drinks\",\n    \"brand\": \"Coca-Cola\",\n    \"manufacturer\": \"The Coca-Cola Company\"\n  },\n  \"stockQty\": 100\n}"
+            },
+            {
+              "name": "Error - Product Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qrValue\": \"UNKNOWN-123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/pos/scan",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pos", "scan"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 404,\n  \"message\": \"Product with SKU UNKNOWN-123 not found\",\n  \"sku\": \"UNKNOWN-123\",\n  \"suggestion\": \"Use POST /products/quick-create to add this product manually\",\n  \"endpoint\": \"/products/quick-create\"\n}"
+            }
+          ],
           "event": [
             {
               "listen": "test",
@@ -550,8 +624,122 @@
               "host": ["{{baseUrl}}"],
               "path": ["pos", "invoices"]
             },
-            "description": "Create a new invoice with items. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Worker ID is automatically set to your user ID. For SALES users, storeId is auto-set. For ADMIN users, you can optionally specify storeId in the request body."
-          }
+            "description": "Create a new invoice with items. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Worker ID is automatically set to your user ID. For SALES users, storeId is auto-set. For ADMIN users, you can optionally specify storeId in the request body. Use product IDs from POST /pos/scan responses."
+          },
+          "response": [
+            {
+              "name": "Success - Invoice Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "idempotency-key",
+                    "value": "unique-key-123"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 5\n    }\n  ],\n  \"clientInvoiceRef\": \"INV-2026-001\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/pos/invoices",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pos", "invoices"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"invoiceId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"pdfUrl\": \"/storage/invoices/a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf\",\n  \"totals\": {\n    \"amount\": \"175.00\",\n    \"items\": 5\n  },\n  \"createdAt\": \"2026-01-19T18:00:00.000Z\"\n}"
+            },
+            {
+              "name": "Error - Product Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"invalid-product-id\",\n      \"qty\": 1\n    }\n  ],\n  \"clientInvoiceRef\": \"INV-TEST\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/pos/invoices",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pos", "invoices"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"One or more products not found. Missing product IDs: invalid-product-id\"\n}"
+            },
+            {
+              "name": "Error - Insufficient Stock",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"qty\": 1000\n    }\n  ],\n  \"clientInvoiceRef\": \"INV-TEST\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/pos/invoices",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["pos", "invoices"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"statusCode\": 400,\n  \"message\": \"Insufficient stock for product COKE-330ML. Available: 100, Requested: 1000\"\n}"
+            }
+          ]
         },
         {
           "name": "Get Invoice",
