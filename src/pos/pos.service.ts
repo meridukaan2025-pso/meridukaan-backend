@@ -101,7 +101,11 @@ export class PosService {
       });
 
       if (products.length !== productIds.length) {
-        throw new BadRequestException('One or more products not found');
+        const foundIds = products.map((p) => p.id);
+        const missingIds = productIds.filter((id) => !foundIds.includes(id));
+        throw new BadRequestException(
+          `One or more products not found. Missing product IDs: ${missingIds.join(', ')}`,
+        );
       }
 
       const productMap = new Map(products.map((p) => [p.id, p]));
