@@ -7,6 +7,19 @@ import { QuickCreateProductDto } from './dto/quick-create-product.dto';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
+  // Helper function to transform product unitPrice from Decimal to string
+  private transformProduct(product: any) {
+    return {
+      ...product,
+      unitPrice: product.unitPrice.toString(),
+    };
+  }
+
+  // Helper function to transform array of products
+  private transformProducts(products: any[]) {
+    return products.map(product => this.transformProduct(product));
+  }
+
   async create(createProductDto: CreateProductDto) {
     // Check if SKU already exists
     const existingProduct = await this.prisma.product.findUnique({
@@ -66,7 +79,7 @@ export class ProductsService {
       },
     });
 
-    return product;
+    return this.transformProduct(product);
   }
 
   async quickCreate(quickCreateDto: QuickCreateProductDto, storeId: string) {
@@ -163,7 +176,7 @@ export class ProductsService {
       return newProduct;
     });
 
-    return product;
+    return this.transformProduct(product);
   }
 
   async findBySku(sku: string) {
@@ -184,11 +197,11 @@ export class ProductsService {
       throw new NotFoundException(`Product with SKU ${sku} not found`);
     }
 
-    return product;
+    return this.transformProduct(product);
   }
 
   async findAll() {
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       include: {
         category: true,
         brand: {
@@ -202,5 +215,7 @@ export class ProductsService {
         createdAt: 'desc',
       },
     });
+
+    return this.transformProducts(products);
   }
 }
