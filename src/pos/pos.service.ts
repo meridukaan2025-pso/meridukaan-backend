@@ -49,7 +49,7 @@ export class PosService {
         id: product.id,
         sku: product.sku,
         name: product.name,
-        unitPrice: product.unitPrice.toString(),
+        unitPrice: product.unitPrice.toNumber(), // Convert Decimal to number for calculations
         unitSizeMl: product.unitSizeMl,
         category: product.category.name,
         brand: product.brand.name,

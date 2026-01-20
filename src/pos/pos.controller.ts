@@ -47,7 +47,7 @@ export class PosController {
             id: { type: 'string', example: '42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d', description: 'Use this product ID in invoice creation' },
             sku: { type: 'string', example: 'COKE-330ML' },
             name: { type: 'string', example: 'Coca-Cola 330ml' },
-            unitPrice: { type: 'string', example: '35.00' },
+            unitPrice: { type: 'number', example: 35.00 },
             unitSizeMl: { type: 'number', example: 330, nullable: true },
             category: { type: 'string', example: 'Soft Drinks' },
             brand: { type: 'string', example: 'Coca-Cola' },

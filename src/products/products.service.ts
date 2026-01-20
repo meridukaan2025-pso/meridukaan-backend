@@ -7,11 +7,12 @@ import { QuickCreateProductDto } from './dto/quick-create-product.dto';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  // Helper function to transform product unitPrice from Decimal to string
+  // Helper function to transform product unitPrice from Decimal to number
+  // Converting to number for frontend calculations (Decimal(10,2) ensures precision)
   private transformProduct(product: any) {
     return {
       ...product,
-      unitPrice: product.unitPrice.toString(),
+      unitPrice: product.unitPrice.toNumber(),
     };
   }
 
