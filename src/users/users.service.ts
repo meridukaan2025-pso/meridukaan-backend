@@ -1,12 +1,71 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  async create(createUserDto: CreateUserDto) {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Validate storeId if role is SALES
+    if (createUserDto.role === UserRole.SALES && !createUserDto.storeId) {
+      throw new BadRequestException('Store ID is required for SALES role');
+    }
+
+    // Validate store exists if storeId is provided
+    if (createUserDto.storeId) {
+      const store = await this.prisma.store.findUnique({
+        where: { id: createUserDto.storeId },
+      });
+
+      if (!store) {
+        throw new BadRequestException('Store not found');
+      }
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(createUserDto.password, 10);
+
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email: createUserDto.email,
+        passwordHash,
+        role: createUserDto.role,
+        storeId: createUserDto.storeId,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        storeId: true,
+        createdAt: true,
+        updatedAt: true,
+        store: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            region: true,
+          },
+        },
+      },
+    });
+
+    return user;
+  }
 
   async findAll() {
     const users = await this.prisma.user.findMany({

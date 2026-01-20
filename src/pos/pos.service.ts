@@ -294,6 +294,60 @@ export class PosService {
     };
   }
 
+  async getAllInvoices(filters?: { storeId?: string; from?: Date; to?: Date }) {
+    const where: any = {};
+    
+    if (filters?.storeId) {
+      where.storeId = filters.storeId;
+    }
+    
+    if (filters?.from || filters?.to) {
+      where.createdAt = {};
+      if (filters.from) {
+        where.createdAt.gte = filters.from;
+      }
+      if (filters.to) {
+        where.createdAt.lte = filters.to;
+      }
+    }
+
+    const invoices = await this.prisma.invoice.findMany({
+      where,
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                brand: true,
+                category: true,
+                manufacturer: true,
+              },
+            },
+          },
+        },
+        store: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Transform Decimal fields to numbers for frontend calculations
+    return invoices.map((invoice) => ({
+      ...invoice,
+      totalAmount: invoice.totalAmount.toNumber(),
+      items: invoice.items.map((item) => ({
+        ...item,
+        unitPrice: item.unitPrice.toNumber(),
+        lineTotal: item.lineTotal.toNumber(),
+        product: item.product
+          ? {
+              ...item.product,
+              unitPrice: item.product.unitPrice.toNumber(),
+            }
+          : null,
+      })),
+    }));
+  }
+
   async getInvoice(id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },

@@ -1,7 +1,8 @@
-import { Controller, Get, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -14,6 +15,45 @@ import { UserRole } from '@prisma/client';
 @Roles(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Create a new user', 
+    description: 'Create a new user account. Requires ADMIN role. Store ID is required for SALES role.' 
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'User created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
+        email: { type: 'string', example: 'newuser@meridukaan.com' },
+        role: { type: 'string', enum: ['ADMIN', 'SALES', 'INVENTORY', 'PURCHASE'], example: 'SALES' },
+        storeId: { type: 'string', nullable: true, example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+        store: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            city: { type: 'string' },
+            region: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid input or store ID required for SALES role' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Requires ADMIN role' })
+  @ApiResponse({ status: 409, description: 'Conflict - User with this email already exists' })
+  async create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
 
   @Get()
   @ApiOperation({ 

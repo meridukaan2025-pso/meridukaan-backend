@@ -156,7 +156,8 @@ export class ProductsService {
         },
       });
 
-      // Initialize inventory for this store (default 0 stock)
+      // Initialize inventory for this store (stockQuantity is required)
+      const initialQty = quickCreateDto.stockQuantity;
       await tx.inventory.upsert({
         where: {
           storeId_productId: {
@@ -167,7 +168,7 @@ export class ProductsService {
         create: {
           storeId,
           productId: newProduct.id,
-          qtyOnHand: 0,
+          qtyOnHand: initialQty,
         },
         update: {
           // If exists, don't change qty

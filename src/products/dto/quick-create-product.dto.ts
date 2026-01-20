@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsInt, Min, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class QuickCreateProductDto {
@@ -59,4 +59,12 @@ export class QuickCreateProductDto {
   @IsNumber()
   @Min(0)
   unitSizeMl?: number;
+
+  @ApiProperty({
+    example: 10,
+    description: 'Initial stock quantity for the current store. Required.',
+  })
+  @IsInt()
+  @Min(0)
+  stockQuantity: number;
 }

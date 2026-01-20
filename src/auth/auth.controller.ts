@@ -53,5 +53,25 @@ export class AuthController {
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
   }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'User logout', 
+    description: 'Logout user. This endpoint is provided for consistency, but JWT tokens are stateless and cannot be invalidated server-side. Client should remove the token from storage.' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Logout successful',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Logged out successfully' },
+      },
+    },
+  })
+  async logout() {
+    return { message: 'Logged out successfully' };
+  }
 }
 

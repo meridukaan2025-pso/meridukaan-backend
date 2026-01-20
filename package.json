@@ -25,7 +25,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "scripts:add-dummy-users": "ts-node scripts/add-dummy-users.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

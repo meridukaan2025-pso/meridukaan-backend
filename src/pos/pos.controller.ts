@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Query,
   Headers,
   Res,
   HttpStatus,
@@ -11,7 +12,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PosService } from './pos.service';
 import { ScanDto } from './dto/scan.dto';
@@ -213,6 +214,24 @@ export class PosController {
     };
 
     return this.posService.createInvoice(invoiceData, idempotencyKey);
+  }
+
+  @Get('invoices')
+  @Roles(UserRole.SALES, UserRole.ADMIN, UserRole.INVENTORY)
+  @ApiOperation({ 
+    summary: 'Get all invoices', 
+    description: 'Retrieve list of all invoices with optional filters. Includes items and product details.' 
+  })
+  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Filter by store ID' })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String, description: 'Filter from date (YYYY-MM-DD)' })
+  @ApiQuery({ name: 'dateTo', required: false, type: String, description: 'Filter to date (YYYY-MM-DD)' })
+  @ApiResponse({ status: 200, description: 'List of invoices' })
+  async getAllInvoices(@Query() query: any) {
+    const filters: any = {};
+    if (query.storeId) filters.storeId = query.storeId;
+    if (query.dateFrom) filters.from = new Date(query.dateFrom);
+    if (query.dateTo) filters.to = new Date(query.dateTo);
+    return this.posService.getAllInvoices(filters);
   }
 
   @Get('invoices/:id')
