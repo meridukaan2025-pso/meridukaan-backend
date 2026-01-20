@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { QuickCreateProductDto } from './dto/quick-create-product.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -170,25 +171,40 @@ export class ProductsController {
     description: 'Retrieve a product by its SKU (barcode). Accessible by all authenticated users. Use this to verify if a product exists before scanning.',
   })
   @ApiParam({ name: 'sku', description: 'Product SKU (barcode)', example: 'COKE-330ML' })
-  @ApiResponse({
-    status: 200,
-    description: 'Product found',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
-        sku: { type: 'string', example: 'COKE-330ML' },
-        name: { type: 'string', example: 'Coca-Cola 330ml' },
-        unitPrice: { type: 'number', example: 35.00 },
-        unitSizeMl: { type: 'number', example: 330, nullable: true },
-        category: { type: 'object' },
-        brand: { type: 'object' },
-        manufacturer: { type: 'object' },
-      },
-    },
-  })
+  @ApiResponse({ status: 200, description: 'Product found' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async findBySku(@Param('sku') sku: string) {
     return this.productsService.findBySku(sku);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.INVENTORY, UserRole.PURCHASE, UserRole.SALES)
+  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({ status: 200, description: 'Product found' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async findById(@Param('id') id: string) {
+    return this.productsService.findById(id);
+  }
+
+  @Put(':id')
+  @Roles(UserRole.ADMIN, UserRole.INVENTORY, UserRole.PURCHASE)
+  @ApiOperation({ summary: 'Update product' })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({ status: 200, description: 'Product updated' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN, UserRole.INVENTORY)
+  @ApiOperation({ summary: 'Delete product' })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({ status: 200, description: 'Product deleted' })
+  @ApiResponse({ status: 400, description: 'Cannot delete: product has been used in invoices' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async remove(@Param('id') id: string) {
+    return this.productsService.remove(id);
   }
 }

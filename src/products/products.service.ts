@@ -1,24 +1,28 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { QuickCreateProductDto } from './dto/quick-create-product.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  // Helper function to transform product unitPrice from Decimal to number
-  // Converting to number for frontend calculations (Decimal(10,2) ensures precision)
+  // Helper: add unitPrice as number and stock (sum of inventory qtyOnHand)
   private transformProduct(product: any) {
+    const stock = Array.isArray(product.inventory)
+      ? product.inventory.reduce((s: number, i: { qtyOnHand: number }) => s + (i.qtyOnHand || 0), 0)
+      : 0;
+    const { inventory, ...rest } = product;
     return {
-      ...product,
-      unitPrice: product.unitPrice.toNumber(),
+      ...rest,
+      unitPrice: product.unitPrice?.toNumber?.() ?? product.unitPrice,
+      stock,
     };
   }
 
-  // Helper function to transform array of products
   private transformProducts(products: any[]) {
-    return products.map(product => this.transformProduct(product));
+    return products.map((p) => this.transformProduct(p));
   }
 
   async create(createProductDto: CreateProductDto) {
@@ -186,19 +190,12 @@ export class ProductsService {
       where: { sku },
       include: {
         category: true,
-        brand: {
-          include: {
-            manufacturer: true,
-          },
-        },
+        brand: { include: { manufacturer: true } },
         manufacturer: true,
+        inventory: { select: { qtyOnHand: true } },
       },
     });
-
-    if (!product) {
-      throw new NotFoundException(`Product with SKU ${sku} not found`);
-    }
-
+    if (!product) throw new NotFoundException(`Product with SKU ${sku} not found`);
     return this.transformProduct(product);
   }
 
@@ -206,18 +203,85 @@ export class ProductsService {
     const products = await this.prisma.product.findMany({
       include: {
         category: true,
-        brand: {
-          include: {
-            manufacturer: true,
-          },
-        },
+        brand: { include: { manufacturer: true } },
         manufacturer: true,
+        inventory: { select: { qtyOnHand: true } },
       },
-      orderBy: {
-        createdAt: 'desc',
+      orderBy: { createdAt: 'desc' },
+    });
+    return this.transformProducts(products);
+  }
+
+  async findById(id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        brand: { include: { manufacturer: true } },
+        manufacturer: true,
+        inventory: { select: { qtyOnHand: true } },
       },
     });
+    if (!product) throw new NotFoundException('Product not found');
+    return this.transformProduct(product);
+  }
 
-    return this.transformProducts(products);
+  async update(id: string, dto: UpdateProductDto) {
+    const existing = await this.prisma.product.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Product not found');
+
+    if (dto.sku && dto.sku !== existing.sku) {
+      const taken = await this.prisma.product.findUnique({ where: { sku: dto.sku } });
+      if (taken) throw new ConflictException(`Product with SKU ${dto.sku} already exists`);
+    }
+    if (dto.categoryId) {
+      const c = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
+      if (!c) throw new NotFoundException('Category not found');
+    }
+    if (dto.brandId) {
+      const b = await this.prisma.brand.findUnique({ where: { id: dto.brandId } });
+      if (!b) throw new NotFoundException('Brand not found');
+    }
+    if (dto.manufacturerId) {
+      const m = await this.prisma.manufacturer.findUnique({ where: { id: dto.manufacturerId } });
+      if (!m) throw new NotFoundException('Manufacturer not found');
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.sku != null) data.sku = dto.sku;
+    if (dto.name != null) data.name = dto.name;
+    if (dto.categoryId != null) data.categoryId = dto.categoryId;
+    if (dto.brandId != null) data.brandId = dto.brandId;
+    if (dto.manufacturerId != null) data.manufacturerId = dto.manufacturerId;
+    if (dto.unitPrice != null) data.unitPrice = dto.unitPrice;
+    if (dto.unitSizeMl != null) data.unitSizeMl = dto.unitSizeMl;
+
+    const product = await this.prisma.product.update({
+      where: { id },
+      data,
+      include: {
+        category: true,
+        brand: { include: { manufacturer: true } },
+        manufacturer: true,
+        inventory: { select: { qtyOnHand: true } },
+      },
+    });
+    return this.transformProduct(product);
+  }
+
+  async remove(id: string) {
+    const existing = await this.prisma.product.findUnique({
+      where: { id },
+      include: { _count: { select: { invoiceItems: true } } },
+    });
+    if (!existing) throw new NotFoundException('Product not found');
+    if (existing._count.invoiceItems > 0) {
+      throw new BadRequestException('Cannot delete product that has been used in invoices.');
+    }
+
+    await this.prisma.inventoryMovement.deleteMany({ where: { productId: id } });
+    await this.prisma.inventory.deleteMany({ where: { productId: id } });
+    await this.prisma.product.delete({ where: { id } });
+    return { message: 'Product deleted successfully' };
   }
 }

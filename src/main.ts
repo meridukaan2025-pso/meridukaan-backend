@@ -40,6 +40,7 @@ async function bootstrap() {
         },
         stores: {
           list: `http://${req.headers.host}/stores`,
+          delete: `http://${req.headers.host}/stores/:id`,
         },
         users: {
           list: `http://${req.headers.host}/users`,
@@ -51,12 +52,18 @@ async function bootstrap() {
           quickCreate: `http://${req.headers.host}/products/quick-create`,
           create: `http://${req.headers.host}/products`,
           getBySku: `http://${req.headers.host}/products/sku/:sku`,
+          getById: `http://${req.headers.host}/products/:id`,
           list: `http://${req.headers.host}/products`,
+          update: `http://${req.headers.host}/products/:id`,
+          delete: `http://${req.headers.host}/products/:id`,
           note: 'Quick-create automatically creates category/brand/manufacturer if not exists',
         },
         pos: {
           scan: `http://${req.headers.host}/pos/scan`,
           createInvoice: `http://${req.headers.host}/pos/invoices`,
+          getInvoices: `http://${req.headers.host}/pos/invoices`,
+          getInvoice: `http://${req.headers.host}/pos/invoices/:id`,
+          deleteInvoice: `http://${req.headers.host}/pos/invoices/:id`,
           note: 'POS operations automatically use your assigned store (SALES users)',
         },
         admin: {

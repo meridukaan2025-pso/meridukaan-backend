@@ -26,7 +26,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
-    "scripts:add-dummy-users": "ts-node scripts/add-dummy-users.ts"
+    "scripts:add-barcode-products": "ts-node scripts/add-barcode-products-from-docs.ts",
+    "scripts:refine-db": "ts-node scripts/refine-db.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

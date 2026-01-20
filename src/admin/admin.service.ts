@@ -6,7 +6,7 @@ export class AdminService {
   constructor(private prisma: PrismaService) {}
 
   async getFilters() {
-    const [regions, cities, stores, categories, manufacturers, brands] = await Promise.all([
+    const [regionRows, cityRows, stores, categories, manufacturers, brands] = await Promise.all([
       this.prisma.store.findMany({
         select: { region: true },
         distinct: ['region'],
@@ -33,9 +33,12 @@ export class AdminService {
       }),
     ]);
 
+    const regionValues = regionRows.map((r) => r.region).filter((v): v is string => v != null && String(v).trim() !== '');
+    const cityValues = cityRows.map((c) => c.city).filter((v): v is string => v != null && String(v).trim() !== '');
+
     return {
-      regions: regions.map((r) => r.region),
-      cities: cities.map((c) => c.city),
+      regions: [...new Set(regionValues)].map((r) => ({ id: r, name: r })),
+      cities: [...new Set(cityValues)].map((c) => ({ id: c, name: c })),
       stores: stores.map((s) => ({
         id: s.id,
         name: s.name,

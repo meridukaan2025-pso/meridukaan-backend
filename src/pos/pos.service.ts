@@ -388,5 +388,39 @@ export class PosService {
       })),
     };
   }
+
+  async deleteInvoice(id: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      // Restore stock for each item and create IN movement (void)
+      for (const item of invoice.items) {
+        await tx.inventory.update({
+          where: {
+            storeId_productId: { storeId: invoice.storeId, productId: item.productId },
+          },
+          data: { qtyOnHand: { increment: item.qty } },
+        });
+        await tx.inventoryMovement.create({
+          data: {
+            storeId: invoice.storeId,
+            productId: item.productId,
+            type: 'IN',
+            qty: item.qty,
+            refType: 'INVOICE_VOID',
+            refId: id,
+          },
+        });
+      }
+      // Cascade deletes invoice_items
+      await tx.invoice.delete({ where: { id } });
+    });
+
+    return { message: 'Invoice deleted successfully' };
+  }
 }
 

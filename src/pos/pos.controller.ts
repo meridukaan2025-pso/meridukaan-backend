@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
   Query,
@@ -9,7 +10,6 @@ import {
   Res,
   HttpStatus,
   HttpCode,
-  UseGuards,
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody, ApiQuery } from '@nestjs/swagger';
@@ -242,6 +242,16 @@ export class PosController {
   @ApiResponse({ status: 404, description: 'Invoice not found' })
   async getInvoice(@Param('id') id: string) {
     return this.posService.getInvoice(id);
+  }
+
+  @Delete('invoices/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete (void) invoice', description: 'Delete an invoice and restore stock. ADMIN only.' })
+  @ApiParam({ name: 'id', description: 'Invoice ID', type: String })
+  @ApiResponse({ status: 200, description: 'Invoice deleted' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  async deleteInvoice(@Param('id') id: string) {
+    return this.posService.deleteInvoice(id);
   }
 
   @Get('invoices/:id/pdf')
