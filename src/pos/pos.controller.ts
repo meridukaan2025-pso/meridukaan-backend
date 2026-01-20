@@ -7,6 +7,7 @@ import {
   Headers,
   Res,
   HttpStatus,
+  HttpCode,
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
@@ -28,6 +29,7 @@ export class PosController {
   constructor(private readonly posService: PosService) {}
 
   @Post('scan')
+  @HttpCode(HttpStatus.OK)
   @Roles(UserRole.SALES, UserRole.ADMIN)
   @ApiOperation({ 
     summary: 'Scan product QR code', 
