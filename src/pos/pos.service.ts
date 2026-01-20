@@ -317,7 +317,22 @@ export class PosService {
       throw new NotFoundException('Invoice not found');
     }
 
-    return invoice;
+    // Transform Decimal fields to numbers for frontend calculations
+    return {
+      ...invoice,
+      totalAmount: invoice.totalAmount.toNumber(),
+      items: invoice.items.map((item) => ({
+        ...item,
+        unitPrice: item.unitPrice.toNumber(),
+        lineTotal: item.lineTotal.toNumber(),
+        product: item.product
+          ? {
+              ...item.product,
+              unitPrice: item.product.unitPrice.toNumber(),
+            }
+          : null,
+      })),
+    };
   }
 }
 

@@ -179,7 +179,7 @@ export class ProductsController {
         id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
         sku: { type: 'string', example: 'COKE-330ML' },
         name: { type: 'string', example: 'Coca-Cola 330ml' },
-        unitPrice: { type: 'string', example: '35.00' },
+        unitPrice: { type: 'number', example: 35.00 },
         unitSizeMl: { type: 'number', example: 330, nullable: true },
         category: { type: 'object' },
         brand: { type: 'object' },
