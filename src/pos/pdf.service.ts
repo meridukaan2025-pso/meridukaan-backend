@@ -55,12 +55,13 @@ export class PdfService {
       // Check for Puppeteer executable path from environment (Railway/Nixpacks)
       const puppeteerExecutablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
       
-      // Try to find Chrome executable on macOS (local development)
+      // Try to find Chrome/Chromium: macOS (local), Linux (apt chromium / nixpacks)
       const chromePaths = [
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         '/Applications/Chromium.app/Contents/MacOS/Chromium',
         '/usr/bin/chromium',
         '/usr/bin/chromium-browser',
+        '/snap/bin/chromium',
       ];
       
       let executablePath: string | undefined = puppeteerExecutablePath;
