@@ -22,11 +22,15 @@ export class AnalyticsService {
 
     if (filters.from || filters.to) {
       where.createdAt = {};
-      if (filters.from) {
-        where.createdAt.gte = new Date(filters.from);
+      const fromDate = filters.from ? new Date(filters.from) : null;
+      if (fromDate && !isNaN(fromDate.getTime())) {
+        where.createdAt.gte = fromDate;
       }
-      if (filters.to) {
-        where.createdAt.lte = new Date(filters.to);
+      const toRaw = filters.to ? new Date(filters.to) : null;
+      if (toRaw && !isNaN(toRaw.getTime())) {
+        const toEnd = new Date(toRaw);
+        toEnd.setHours(23, 59, 59, 999);
+        where.createdAt.lte = toEnd;
       }
     }
 
