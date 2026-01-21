@@ -229,8 +229,13 @@ export class PosController {
   async getAllInvoices(@Query() query: any) {
     const filters: any = {};
     if (query.storeId) filters.storeId = query.storeId;
-    if (query.dateFrom) filters.from = new Date(query.dateFrom);
-    if (query.dateTo) filters.to = new Date(query.dateTo);
+    const from = query.dateFrom ? new Date(query.dateFrom) : null;
+    if (from && !isNaN(from.getTime())) filters.from = from;
+    const toRaw = query.dateTo ? new Date(query.dateTo) : null;
+    if (toRaw && !isNaN(toRaw.getTime())) {
+      filters.to = new Date(toRaw);
+      filters.to.setHours(23, 59, 59, 999);
+    }
     return this.posService.getAllInvoices(filters);
   }
 
