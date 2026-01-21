@@ -3,6 +3,16 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
 export class UpdateUserDto {
+  @ApiPropertyOptional({ example: 'John', description: 'First name' })
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe', description: 'Last name' })
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
   @ApiPropertyOptional({
     example: 'updated@meridukaan.com',
     description: 'User email address (must be unique)',

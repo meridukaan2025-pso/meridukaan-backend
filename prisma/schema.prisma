@@ -35,6 +35,8 @@ model User {
   passwordHash String   @map("password_hash")
   role         UserRole
   storeId      String?  @map("store_id")
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

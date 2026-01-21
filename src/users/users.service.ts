@@ -45,10 +45,14 @@ export class UsersService {
         passwordHash,
         role: createUserDto.role,
         storeId: createUserDto.storeId,
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
       },
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         role: true,
         storeId: true,
         createdAt: true,
@@ -72,6 +76,8 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         role: true,
         storeId: true,
         createdAt: true,
@@ -99,6 +105,8 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         role: true,
         storeId: true,
         createdAt: true,
@@ -164,6 +172,12 @@ export class UsersService {
     // Prepare update data
     const updateData: any = {};
 
+    if (updateUserDto.firstName !== undefined) {
+      updateData.firstName = updateUserDto.firstName;
+    }
+    if (updateUserDto.lastName !== undefined) {
+      updateData.lastName = updateUserDto.lastName;
+    }
     if (updateUserDto.email) {
       updateData.email = updateUserDto.email;
     }
@@ -188,6 +202,8 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         role: true,
         storeId: true,
         createdAt: true,

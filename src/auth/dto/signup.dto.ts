@@ -35,4 +35,14 @@ export class SignupDto {
   @IsOptional()
   @IsUUID()
   storeId?: string;
+
+  @ApiPropertyOptional({ example: 'John', description: 'First name' })
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe', description: 'Last name' })
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 }

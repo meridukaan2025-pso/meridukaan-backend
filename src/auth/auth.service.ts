@@ -47,10 +47,35 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        firstName: user.firstName ?? null,
+        lastName: user.lastName ?? null,
         role: user.role,
         storeId: user.storeId,
       },
     };
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        storeId: true,
+        createdAt: true,
+        updatedAt: true,
+        store: {
+          select: { id: true, name: true, city: true, region: true },
+        },
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return user;
   }
 
   async signup(signupDto: SignupDto) {
@@ -89,6 +114,8 @@ export class AuthService {
         passwordHash,
         role: signupDto.role,
         storeId: signupDto.storeId,
+        firstName: signupDto.firstName,
+        lastName: signupDto.lastName,
       },
       include: { store: true },
     });
@@ -108,6 +135,8 @@ export class AuthService {
       user: {
         id: userWithoutPassword.id,
         email: userWithoutPassword.email,
+        firstName: userWithoutPassword.firstName ?? null,
+        lastName: userWithoutPassword.lastName ?? null,
         role: userWithoutPassword.role,
         storeId: userWithoutPassword.storeId,
       },
