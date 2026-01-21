@@ -285,7 +285,7 @@ export class PosService {
 
     return {
       invoiceId: invoice.id,
-      pdfUrl: updatedInvoice.pdfUrl,
+      pdfUrl: updatedInvoice.pdfUrl ?? '',
       totals: {
         amount: invoice.totalAmount.toString(),
         items: invoice.totalItems,
