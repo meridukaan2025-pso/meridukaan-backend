@@ -11,6 +11,7 @@ import {
   HttpStatus,
   HttpCode,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -261,28 +262,30 @@ export class PosController {
 
   @Get('invoices/:id/pdf')
   @Roles(UserRole.SALES, UserRole.ADMIN, UserRole.INVENTORY)
-  @ApiOperation({ summary: 'Get invoice PDF', description: 'Download invoice PDF file' })
+  @ApiOperation({ summary: 'Get invoice PDF', description: 'Download invoice PDF file. If the PDF was not generated at invoice creation, it is generated on demand.' })
   @ApiParam({ name: 'id', description: 'Invoice ID', type: String })
   @ApiResponse({ status: 200, description: 'PDF file', content: { 'application/pdf': {} } })
-  @ApiResponse({ status: 404, description: 'PDF not found' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({ status: 503, description: 'PDF generation failed (e.g. Chromium unavailable). Try again later.' })
   async getInvoicePdf(@Param('id') id: string, @Res() res: Response) {
-    const invoice = await this.posService.getInvoice(id);
-    
-    if (!invoice.pdfUrl) {
-      return res.status(HttpStatus.NOT_FOUND).json({ message: 'PDF not found' });
+    try {
+      const pdfUrl = await this.posService.ensureInvoicePdfPath(id);
+      const filePath = path.join(process.cwd(), pdfUrl);
+      if (!fs.existsSync(filePath)) {
+        return res.status(HttpStatus.NOT_FOUND).json({ message: 'PDF file not found' });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="invoice-${id}.pdf"`);
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (e) {
+      if (e instanceof NotFoundException) {
+        throw e;
+      }
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        message: 'PDF is unavailable. Please try again later.',
+      });
     }
-
-    const filePath = path.join(process.cwd(), invoice.pdfUrl);
-    
-    if (!fs.existsSync(filePath)) {
-      return res.status(HttpStatus.NOT_FOUND).json({ message: 'PDF file not found' });
-    }
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="invoice-${id}.pdf"`);
-    
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
   }
 }
 

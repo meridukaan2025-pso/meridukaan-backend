@@ -5,6 +5,8 @@ import { InventoryService } from './inventory.service';
 import { PdfService } from './pdf.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { Decimal } from '@prisma/client/runtime/library';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class PosService {
@@ -243,9 +245,9 @@ export class PosService {
     let pdfUrl: string | null = null;
     try {
       pdfUrl = await this.pdfService.generateInvoicePdf(invoice.id);
-    } catch (error) {
-      // Log error but continue - PDF is optional for POC
-      console.error('PDF generation failed (continuing without PDF):', error.message);
+    } catch (error: any) {
+      // Log error but continue - PDF is optional for POC. On-demand generation will retry when GET /pdf is called.
+      console.error(`PDF generation failed for invoice ${invoice.id} (continuing without PDF):`, error?.message ?? error);
     }
 
     // Update invoice with PDF URL
@@ -387,6 +389,34 @@ export class PosService {
           : null,
       })),
     };
+  }
+
+  /**
+   * Returns the pdfUrl for an invoice. If the PDF does not exist (pdfUrl null or file missing),
+   * generates it on demand, updates the invoice, and returns the path.
+   * @throws NotFoundException if invoice does not exist
+   * @throws Error (from PdfService) if PDF generation fails
+   */
+  async ensureInvoicePdfPath(invoiceId: string): Promise<string> {
+    const inv = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { pdfUrl: true },
+    });
+    if (!inv) {
+      throw new NotFoundException('Invoice not found');
+    }
+    if (inv.pdfUrl) {
+      const fp = path.join(process.cwd(), inv.pdfUrl);
+      if (fs.existsSync(fp)) {
+        return inv.pdfUrl;
+      }
+    }
+    const pdfUrl = await this.pdfService.generateInvoicePdf(invoiceId);
+    await this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { pdfUrl },
+    });
+    return pdfUrl;
   }
 
   async deleteInvoice(id: string) {
