@@ -27,7 +27,9 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:studio": "prisma studio",
     "scripts:add-barcode-products": "ts-node scripts/add-barcode-products-from-docs.ts",
-    "scripts:refine-db": "ts-node scripts/refine-db.ts"
+    "scripts:refine-db": "ts-node scripts/refine-db.ts",
+    "scripts:seed-invoices": "ts-node scripts/seed-invoices.ts",
+    "scripts:count-invoices": "ts-node scripts/count-invoices.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

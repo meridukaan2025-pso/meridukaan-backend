@@ -196,6 +196,16 @@ export class AnalyticsService {
       shareInShops: avgShareInShops * 100,
       avgPricePerLitre,
       avgPricePerSKU,
+      totalInvoices: invoices.length,
+      implementedStores: storesWithSales,
+      totalStores,
+      trends: {
+        salesValue: 0,
+        salesVolume: 0,
+        distribution: 0,
+        weightedDistribution: 0,
+        shareInShops: 0,
+      },
     };
   }
 

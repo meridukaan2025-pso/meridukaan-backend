@@ -2,8 +2,10 @@ import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards } from '@nes
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductAdminDto } from './dto/create-product-admin.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QuickCreateProductDto } from './dto/quick-create-product.dto';
+import { AddStockDto } from './dto/add-stock.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -70,6 +72,18 @@ export class ProductsController {
   @ApiResponse({ status: 409, description: 'Product with this SKU already exists' })
   async create(@Body() createProductDto: CreateProductDto) {
     return this.productsService.create(createProductDto);
+  }
+
+  @Post('admin-create')
+  @Roles(UserRole.ADMIN, UserRole.INVENTORY, UserRole.PURCHASE)
+  @ApiOperation({
+    summary: 'Create product (admin)',
+    description: 'Create product with optional new category/brand/manufacturer by name, and optional initial stock per store.',
+  })
+  @ApiResponse({ status: 201, description: 'Product created' })
+  @ApiResponse({ status: 400, description: 'Invalid input: e.g. need categoryId or categoryName; storeId when stockQuantity>0' })
+  async createFromAdmin(@Body() dto: CreateProductAdminDto) {
+    return this.productsService.createFromAdmin(dto);
   }
 
   @Post('quick-create')
@@ -195,6 +209,17 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Product not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
+  }
+
+  @Post(':id/stock')
+  @Roles(UserRole.ADMIN, UserRole.INVENTORY, UserRole.PURCHASE)
+  @ApiOperation({ summary: 'Add or reduce stock', description: 'Adjust stock at a store. quantity: positive to add, negative to reduce.' })
+  @ApiParam({ name: 'id', description: 'Product UUID' })
+  @ApiResponse({ status: 200, description: 'Stock updated' })
+  @ApiResponse({ status: 400, description: 'Would result in negative stock' })
+  @ApiResponse({ status: 404, description: 'Product or store not found' })
+  async addStock(@Param('id') id: string, @Body() dto: AddStockDto) {
+    return this.productsService.addStock(id, dto.storeId, dto.quantity);
   }
 
   @Delete(':id')

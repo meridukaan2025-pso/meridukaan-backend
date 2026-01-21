@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QuickCreateProductDto } from './dto/quick-create-product.dto';
+import { CreateProductAdminDto } from './dto/create-product-admin.dto';
 
 @Injectable()
 export class ProductsService {
@@ -25,8 +26,76 @@ export class ProductsService {
     return products.map((p) => this.transformProduct(p));
   }
 
+  async createFromAdmin(dto: CreateProductAdminDto) {
+    const existing = await this.prisma.product.findUnique({ where: { sku: dto.sku } });
+    if (existing) throw new ConflictException(`Product with SKU ${dto.sku} already exists`);
+    if (!dto.categoryId && !dto.categoryName) throw new BadRequestException('Provide categoryId or categoryName');
+    if (!dto.brandId && !dto.brandName) throw new BadRequestException('Provide brandId or brandName');
+    if (dto.brandName && !dto.manufacturerId && !dto.manufacturerName) throw new BadRequestException('Provide manufacturerId or manufacturerName when using brandName');
+    const sq = dto.stockQuantity ?? 0;
+    if (sq > 0 && !dto.storeId) throw new BadRequestException('storeId is required when stockQuantity > 0');
+
+    const product = await this.prisma.$transaction(async (tx) => {
+      let category: { id: string };
+      if (dto.categoryId) {
+        const c = await tx.category.findUnique({ where: { id: dto.categoryId } });
+        if (!c) throw new NotFoundException('Category not found');
+        category = c;
+      } else {
+        let c = await tx.category.findFirst({ where: { name: dto.categoryName! } });
+        if (!c) c = await tx.category.create({ data: { name: dto.categoryName! } });
+        category = c;
+      }
+
+      let manufacturer: { id: string } | null = null;
+      if (dto.manufacturerId) {
+        const m = await tx.manufacturer.findUnique({ where: { id: dto.manufacturerId } });
+        if (!m) throw new NotFoundException('Manufacturer not found');
+        manufacturer = m;
+      } else if (dto.manufacturerName) {
+        let m = await tx.manufacturer.findFirst({ where: { name: dto.manufacturerName } });
+        if (!m) m = await tx.manufacturer.create({ data: { name: dto.manufacturerName } });
+        manufacturer = m;
+      }
+
+      let brand: { id: string; manufacturerId: string };
+      if (dto.brandId) {
+        const b = await tx.brand.findUnique({ where: { id: dto.brandId } });
+        if (!b) throw new NotFoundException('Brand not found');
+        brand = b;
+      } else {
+        if (!manufacturer) throw new BadRequestException('manufacturerId or manufacturerName required when using brandName');
+        let b = await tx.brand.findFirst({ where: { name: dto.brandName!, manufacturerId: manufacturer.id } });
+        if (!b) b = await tx.brand.create({ data: { name: dto.brandName!, manufacturerId: manufacturer.id } });
+        brand = b;
+      }
+
+      const newProduct = await tx.product.create({
+        data: {
+          sku: dto.sku,
+          name: dto.name,
+          categoryId: category.id,
+          brandId: brand.id,
+          manufacturerId: brand.manufacturerId,
+          unitPrice: dto.unitPrice,
+          unitSizeMl: dto.unitSizeMl,
+        },
+        include: { category: true, brand: { include: { manufacturer: true } }, manufacturer: true },
+      });
+
+      if (sq > 0 && dto.storeId) {
+        await tx.inventory.upsert({
+          where: { storeId_productId: { storeId: dto.storeId, productId: newProduct.id } },
+          create: { storeId: dto.storeId, productId: newProduct.id, qtyOnHand: sq },
+          update: { qtyOnHand: { increment: sq } },
+        });
+      }
+      return newProduct;
+    });
+    return this.transformProduct(product);
+  }
+
   async create(createProductDto: CreateProductDto) {
-    // Check if SKU already exists
     const existingProduct = await this.prisma.product.findUnique({
       where: { sku: createProductDto.sku },
     });
@@ -267,6 +336,27 @@ export class ProductsService {
       },
     });
     return this.transformProduct(product);
+  }
+
+  async addStock(productId: string, storeId: string, quantity: number) {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new NotFoundException('Product not found');
+    const store = await this.prisma.store.findUnique({ where: { id: storeId } });
+    if (!store) throw new NotFoundException('Store not found');
+
+    const inv = await this.prisma.inventory.findUnique({
+      where: { storeId_productId: { storeId, productId } },
+    });
+    const current = inv?.qtyOnHand ?? 0;
+    const after = current + quantity;
+    if (after < 0) throw new BadRequestException(`Cannot reduce stock by ${quantity}; current at store: ${current}`);
+
+    await this.prisma.inventory.upsert({
+      where: { storeId_productId: { storeId, productId } },
+      create: { storeId, productId, qtyOnHand: after },
+      update: { qtyOnHand: after },
+    });
+    return { storeId, productId, previousQty: current, added: quantity, newQty: after };
   }
 
   async remove(id: string) {
