@@ -161,13 +161,22 @@ export class AuthService {
     }
 
     // Validate store exists if storeId is provided
+    // For SALES role, storeId is required and must exist
+    // For other roles, storeId is optional, but if provided, it must be valid
     if (signupDto.storeId) {
       const store = await this.prisma.store.findUnique({
         where: { id: signupDto.storeId },
       });
 
       if (!store) {
-        throw new BadRequestException('Store not found');
+        // Provide helpful error message with available stores info
+        const allStores = await this.prisma.store.findMany({
+          select: { id: true, name: true },
+        });
+        const storeList = allStores.map(s => `${s.name} (${s.id})`).join(', ');
+        throw new BadRequestException(
+          `Store not found with ID: ${signupDto.storeId}. ${allStores.length > 0 ? `Available stores: ${storeList}` : 'No stores available in the system.'}`
+        );
       }
     }
 
