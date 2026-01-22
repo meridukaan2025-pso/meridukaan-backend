@@ -3,7 +3,7 @@
     "name": "Meri Dukaan Backend API",
     "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints. Includes all endpoints with proper authentication, examples, and descriptions.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.5.0"
+    "version": "2.6.0"
   },
   "variable": [
     {
@@ -56,7 +56,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["stores"]
             },
-            "description": "Get list of all stores. Public endpoint - no authentication required. Use this to get store IDs for user signup."
+            "description": "Get list of all stores. Public endpoint - no authentication required."
           },
           "event": [
             {
@@ -68,6 +68,41 @@
                   "    if (jsonData.length > 0) {",
                   "        pm.collectionVariables.set('storeId', jsonData[0].id);",
                   "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Store",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Store\",\n  \"region\": \"Punjab\",\n  \"city\": \"Lahore\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stores",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores"]
+            },
+            "description": "Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID. Region and city are optional."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('storeId', jsonData.id);",
                   "}"
                 ]
               }
@@ -190,14 +225,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeId\": \"{{storeId}}\"\n}"
+              "raw": "{\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeName\": \"My New Store\",\n  \"storeRegion\": \"Punjab\",\n  \"storeCity\": \"Lahore\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/signup",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "signup"]
             },
-            "description": "Create a new user account and receive JWT token. Store ID is required for SALES role. First call GET /stores to get a store ID."
+            "description": "Create a new user account and receive JWT token. \n\n**New Flow (Recommended):** Provide storeName (and optionally storeRegion, storeCity) - API will create store automatically and assign storeId.\n\n**Alternative:** Provide storeId (existing store) - use GET /stores to get a store ID first.\n\nFor SALES role, either storeName or storeId is required."
           }
         },
         {
@@ -282,6 +317,54 @@
     {
       "name": "Stores",
       "item": [
+        {
+          "name": "Get All Stores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stores",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores"]
+            },
+            "description": "Get list of all stores. Public endpoint - no authentication required."
+          }
+        },
+        {
+          "name": "Create Store",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Store\",\n  \"region\": \"Punjab\",\n  \"city\": \"Lahore\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stores",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores"]
+            },
+            "description": "Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID. Region and city are optional."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('storeId', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Delete Store",
           "request": {
