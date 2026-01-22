@@ -1,8 +1,9 @@
-import { Controller, Get, Delete, Param } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { StoresService } from './stores.service';
 import { Public } from '../common/decorators/public.decorator';
 import { StoreResponseDto } from './dto/store-response.dto';
+import { CreateStoreDto } from './dto/create-store.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
@@ -15,7 +16,7 @@ export class StoresController {
   @Get()
   @ApiOperation({ 
     summary: 'Get all stores', 
-    description: 'Retrieve a list of all stores. Public endpoint - no authentication required. Use this to get store IDs for user signup.' 
+    description: 'Retrieve a list of all stores. Public endpoint - no authentication required.' 
   })
   @ApiResponse({ 
     status: 200, 
@@ -24,6 +25,23 @@ export class StoresController {
   })
   async findAll(): Promise<StoreResponseDto[]> {
     return this.storesService.findAll();
+  }
+
+  @Public()
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ 
+    summary: 'Create a new store', 
+    description: 'Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID.' 
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Store created successfully',
+    type: StoreResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid input' })
+  async create(@Body() createStoreDto: CreateStoreDto): Promise<StoreResponseDto> {
+    return this.storesService.create(createStoreDto);
   }
 
   @Delete(':id')

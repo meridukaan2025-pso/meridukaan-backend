@@ -39,4 +39,24 @@ export class StoresService {
 
     return stores;
   }
+
+  async create(createStoreDto: { name: string; region?: string; city?: string }) {
+    const store = await this.prisma.store.create({
+      data: {
+        name: createStoreDto.name,
+        region: createStoreDto.region || '',
+        city: createStoreDto.city || '',
+      },
+      select: {
+        id: true,
+        name: true,
+        region: true,
+        city: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return store;
+  }
 }

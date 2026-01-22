@@ -6,12 +6,14 @@ import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserRole } from '@prisma/client';
+import { StoresService } from '../stores/stores.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private storesService: StoresService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -155,15 +157,19 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Validate storeId if role is SALES
-    if (signupDto.role === UserRole.SALES && !signupDto.storeId) {
-      throw new BadRequestException('Store ID is required for SALES role');
-    }
+    let finalStoreId: string | null = null;
 
-    // Validate store exists if storeId is provided
-    // For SALES role, storeId is required and must exist
-    // For other roles, storeId is optional, but if provided, it must be valid
-    if (signupDto.storeId) {
+    // Flow: If storeName is provided, create store first and get storeId
+    if (signupDto.storeName) {
+      // Create store with provided name
+      const newStore = await this.storesService.create({
+        name: signupDto.storeName,
+        region: signupDto.storeRegion || '',
+        city: signupDto.storeCity || '',
+      });
+      finalStoreId = newStore.id;
+    } else if (signupDto.storeId) {
+      // If storeId is provided, validate it exists
       const store = await this.prisma.store.findUnique({
         where: { id: signupDto.storeId },
       });
@@ -178,18 +184,24 @@ export class AuthService {
           `Store not found with ID: ${signupDto.storeId}. ${allStores.length > 0 ? `Available stores: ${storeList}` : 'No stores available in the system.'}`
         );
       }
+      finalStoreId = signupDto.storeId;
+    }
+
+    // Validate storeId if role is SALES
+    if (signupDto.role === UserRole.SALES && !finalStoreId) {
+      throw new BadRequestException('Store ID or Store Name is required for SALES role. Provide either storeId (existing store) or storeName (to create new store).');
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(signupDto.password, 10);
 
-    // Create user
+    // Create user with the final storeId (either from created store or provided storeId)
     const user = await this.prisma.user.create({
       data: {
         email: signupDto.email,
         passwordHash,
         role: signupDto.role,
-        storeId: signupDto.storeId,
+        storeId: finalStoreId,
         firstName: signupDto.firstName,
         lastName: signupDto.lastName,
       },

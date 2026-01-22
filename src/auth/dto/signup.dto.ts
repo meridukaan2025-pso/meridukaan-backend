@@ -30,11 +30,35 @@ export class SignupDto {
 
   @ApiPropertyOptional({
     example: '4158f662-9e15-42ef-9c4e-345b9465693c',
-    description: 'Store ID (optional, required for SALES role)',
+    description: 'Store ID (optional - use storeName instead to create new store during signup)',
   })
   @IsOptional()
   @IsUUID()
   storeId?: string;
+
+  @ApiPropertyOptional({
+    example: 'My Store Name',
+    description: 'Store name (optional - if provided, store will be created and storeId will be assigned automatically)',
+  })
+  @IsOptional()
+  @IsString()
+  storeName?: string;
+
+  @ApiPropertyOptional({
+    example: 'Punjab',
+    description: 'Store region (optional - required if storeName is provided)',
+  })
+  @IsOptional()
+  @IsString()
+  storeRegion?: string;
+
+  @ApiPropertyOptional({
+    example: 'Lahore',
+    description: 'Store city (optional - required if storeName is provided)',
+  })
+  @IsOptional()
+  @IsString()
+  storeCity?: string;
 
   @ApiPropertyOptional({ example: 'John', description: 'First name' })
   @IsOptional()
