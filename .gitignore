@@ -80,3 +80,6 @@ test-all-apis.js
 *.db
 *.sqlite
 *.sqlite3
+
+# Markdown documentation folder
+markdown/
