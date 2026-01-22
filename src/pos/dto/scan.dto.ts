@@ -8,5 +8,14 @@ export class ScanDto {
   })
   @IsString()
   qrValue: string;
+
+  // Commented out - Admin POS testing support
+  // @ApiPropertyOptional({
+  //   description: 'Store UUID (optional). Required for ADMIN users if not assigned to a store.',
+  //   required: false,
+  // })
+  // @IsOptional()
+  // @IsUUID()
+  // storeId?: string;
 }
 

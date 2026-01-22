@@ -97,7 +97,14 @@ export class PosController {
       storeId = user.storeId;
     } else if (user.role === UserRole.ADMIN) {
       // ADMIN can use their assigned store if they have one
-      // For now, ADMIN must have a storeId assigned (can be updated later to allow store selection)
+      // Commented out - Admin POS testing support (allowing admin to specify storeId)
+      // if (scanDto.storeId) {
+      //   storeId = scanDto.storeId;
+      // } else if (user.storeId) {
+      //   storeId = user.storeId;
+      // } else {
+      //   throw new BadRequestException('Store ID is required. Please specify storeId in the request.');
+      // }
       if (!user.storeId) {
         throw new BadRequestException('Store ID is required. ADMIN users must be assigned to a store or specify storeId.');
       }
@@ -192,14 +199,19 @@ export class PosController {
         throw new BadRequestException('SALES users can only create invoices for their assigned store.');
       }
     } else if (user.role === UserRole.ADMIN) {
-      // ADMIN can specify storeId or use their assigned store if they have one
-      if (createInvoiceDto.storeId) {
-        storeId = createInvoiceDto.storeId;
-      } else if (user.storeId) {
-        storeId = user.storeId;
-      } else {
-        throw new BadRequestException('Store ID is required. Please specify storeId in the request.');
+      // ADMIN can use their assigned store if they have one
+      // Commented out - Admin POS testing support (allowing admin to specify storeId)
+      // if (createInvoiceDto.storeId) {
+      //   storeId = createInvoiceDto.storeId;
+      // } else if (user.storeId) {
+      //   storeId = user.storeId;
+      // } else {
+      //   throw new BadRequestException('Store ID is required. Please specify storeId in the request.');
+      // }
+      if (!user.storeId) {
+        throw new BadRequestException('Store ID is required. ADMIN users must be assigned to a store.');
       }
+      storeId = user.storeId;
     } else {
       throw new BadRequestException('Unauthorized: Only SALES and ADMIN users can create invoices.');
     }
@@ -272,18 +284,27 @@ export class PosController {
       const pdfUrl = await this.posService.ensureInvoicePdfPath(id);
       const filePath = path.join(process.cwd(), pdfUrl);
       if (!fs.existsSync(filePath)) {
+        console.error(`[PDF Controller] PDF file not found at: ${filePath} for invoice ${id}`);
         return res.status(HttpStatus.NOT_FOUND).json({ message: 'PDF file not found' });
       }
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="invoice-${id}.pdf"`);
       const fileStream = fs.createReadStream(filePath);
+      fileStream.on('error', (err) => {
+        console.error(`[PDF Controller] Error reading PDF file for invoice ${id}:`, err);
+        if (!res.headersSent) {
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Error reading PDF file' });
+        }
+      });
       fileStream.pipe(res);
     } catch (e) {
       if (e instanceof NotFoundException) {
         throw e;
       }
+      console.error(`[PDF Controller] Error generating PDF for invoice ${id}:`, e);
       return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
         message: 'PDF is unavailable. Please try again later.',
+        error: process.env.NODE_ENV === 'development' ? (e as Error).message : undefined,
       });
     }
   }

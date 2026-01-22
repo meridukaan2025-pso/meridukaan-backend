@@ -242,12 +242,20 @@ export class PosService {
     const { invoice, inventoryUpdates } = result;
 
     // Generate PDF (sync for POC)
+    // PDF generation is important - try to generate it, but don't fail invoice creation if it fails
+    // On-demand generation will retry when GET /pdf is called
     let pdfUrl: string | null = null;
     try {
       pdfUrl = await this.pdfService.generateInvoicePdf(invoice.id);
+      console.log(`✅ PDF generated successfully for invoice ${invoice.id}: ${pdfUrl}`);
     } catch (error: any) {
-      // Log error but continue - PDF is optional for POC. On-demand generation will retry when GET /pdf is called.
-      console.error(`PDF generation failed for invoice ${invoice.id} (continuing without PDF):`, error?.message ?? error);
+      // Log detailed error but continue - PDF is optional for POC. On-demand generation will retry when GET /pdf is called.
+      console.error(`❌ PDF generation failed for invoice ${invoice.id}:`, {
+        message: error?.message ?? 'Unknown error',
+        stack: error?.stack,
+        error: error,
+      });
+      // PDF will be generated on-demand when user requests it via GET /pos/invoices/:id/pdf
     }
 
     // Update invoice with PDF URL

@@ -35,7 +35,9 @@
     {
       "name": "Admin",
       "description": "Admin analytics and dashboard endpoints"
-    }
+    },
+    { "name": "Users", "description": "User management (ADMIN only)" },
+    { "name": "Products", "description": "Product CRUD and stock" }
   ],
   "components": {
     "securitySchemes": {
@@ -631,6 +633,42 @@
             ]
           }
         }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "required": ["email", "password", "role"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 6 },
+          "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
+          "storeId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "CreateProductAdminRequest": {
+        "type": "object",
+        "required": ["sku", "name", "unitPrice"],
+        "properties": {
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "categoryId": { "type": "string", "format": "uuid" },
+          "categoryName": { "type": "string" },
+          "brandId": { "type": "string", "format": "uuid" },
+          "brandName": { "type": "string" },
+          "manufacturerId": { "type": "string", "format": "uuid" },
+          "manufacturerName": { "type": "string" },
+          "unitPrice": { "type": "number" },
+          "unitSizeMl": { "type": "number" },
+          "stockQuantity": { "type": "integer" },
+          "storeId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "AddStockRequest": {
+        "type": "object",
+        "required": ["storeId", "quantity"],
+        "properties": {
+          "storeId": { "type": "string", "format": "uuid" },
+          "quantity": { "type": "integer" }
+        }
       }
     }
   },
@@ -675,6 +713,58 @@
         }
       }
     },
+    "/auth/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User signup",
+        "description": "Create a new user and receive JWT. Store ID required for SALES.",
+        "operationId": "signup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "role"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 6 },
+                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
+                  "storeId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created" },
+          "400": { "description": "Bad request" },
+          "409": { "description": "Email already exists" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout",
+        "description": "Logout. Client should remove token. JWT is stateless.",
+        "operationId": "logout",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "message": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/stores": {
       "get": {
         "tags": ["Stores"],
@@ -696,6 +786,261 @@
             }
           }
         }
+      }
+    },
+    "/stores/{id}": {
+      "delete": {
+        "tags": ["Stores"],
+        "summary": "Delete store",
+        "description": "Delete a store by ID. ADMIN only.",
+        "operationId": "deleteStore",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Store deleted" },
+          "400": { "description": "Cannot delete: store has users, inventory, or invoices" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Store not found" }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create user",
+        "description": "Create a new user. ADMIN only. Store ID required for SALES.",
+        "operationId": "createUser",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created" },
+          "400": { "description": "Bad request" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "409": { "description": "Email already exists" }
+        }
+      },
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get all users",
+        "description": "Retrieve all users. ADMIN only.",
+        "operationId": "getAllUsers",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of users" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by ID",
+        "operationId": "getUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "User found" }, "404": { "description": "User not found" } }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user",
+        "description": "Update user. All fields optional. ADMIN only.",
+        "operationId": "updateUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
+                  "storeId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "User updated" }, "400": { "description": "Bad request" }, "404": { "description": "User not found" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user",
+        "operationId": "deleteUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "User deleted" }, "404": { "description": "User not found" } }
+      }
+    },
+    "/products": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product (full)",
+        "description": "Create product with existing category, brand, manufacturer IDs.",
+        "operationId": "createProduct",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sku", "name", "categoryId", "brandId", "manufacturerId", "unitPrice"],
+                "properties": {
+                  "sku": { "type": "string" },
+                  "name": { "type": "string" },
+                  "categoryId": { "type": "string", "format": "uuid" },
+                  "brandId": { "type": "string", "format": "uuid" },
+                  "manufacturerId": { "type": "string", "format": "uuid" },
+                  "unitPrice": { "type": "number" },
+                  "unitSizeMl": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" }, "404": { "description": "Not found" } }
+      },
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get all products",
+        "description": "List all products.",
+        "operationId": "getAllProducts",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "List of products" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/products/admin-create": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create product (admin)",
+        "description": "Create with optional new category/brand/manufacturer by name. storeId required when stockQuantity > 0.",
+        "operationId": "createProductAdmin",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateProductAdminRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" } }
+      }
+    },
+    "/products/quick-create": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Quick create product (POS)",
+        "description": "Create when barcode unknown. Auto-creates category, brand, manufacturer. SALES or ADMIN.",
+        "operationId": "quickCreateProduct",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sku", "name", "categoryName", "brandName", "manufacturerName", "unitPrice"],
+                "properties": {
+                  "sku": { "type": "string" },
+                  "name": { "type": "string" },
+                  "categoryName": { "type": "string" },
+                  "brandName": { "type": "string" },
+                  "manufacturerName": { "type": "string" },
+                  "unitPrice": { "type": "number" },
+                  "unitSizeMl": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" }, "409": { "description": "SKU exists" } }
+      }
+    },
+    "/products/sku/{sku}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by SKU",
+        "operationId": "getProductBySku",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "sku", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Product found" }, "404": { "description": "Product not found" } }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by ID",
+        "operationId": "getProductById",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Product found" }, "404": { "description": "Product not found" } }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "operationId": "updateProduct",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "categoryId": { "type": "string", "format": "uuid" },
+                  "brandId": { "type": "string", "format": "uuid" },
+                  "manufacturerId": { "type": "string", "format": "uuid" },
+                  "unitPrice": { "type": "number" },
+                  "unitSizeMl": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Product updated" }, "404": { "description": "Product not found" } }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "description": "ADMIN only. Fails if product used in invoices.",
+        "operationId": "deleteProduct",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Product deleted" }, "400": { "description": "Cannot delete" }, "404": { "description": "Product not found" } }
+      }
+    },
+    "/products/{id}/stock": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Add or reduce stock",
+        "description": "quantity: positive to add, negative to reduce.",
+        "operationId": "addStock",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AddStockRequest" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Stock updated" }, "400": { "description": "Negative stock" }, "404": { "description": "Not found" } }
       }
     },
     "/pos/scan": {
@@ -806,6 +1151,19 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": ["POS"],
+        "summary": "Get all invoices",
+        "description": "List invoices. Query: storeId, dateFrom, dateTo.",
+        "operationId": "getAllInvoices",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "storeId", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "dateFrom", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+          { "name": "dateTo", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": { "200": { "description": "List of invoices" }, "401": { "description": "Unauthorized" } }
       }
     },
     "/pos/invoices/{id}": {
@@ -852,6 +1210,22 @@
               }
             }
           }
+        }
+      },
+      "delete": {
+        "tags": ["POS"],
+        "summary": "Delete (void) invoice",
+        "description": "Delete invoice and restore stock. ADMIN only.",
+        "operationId": "deleteInvoice",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Invoice deleted" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Invoice not found" }
         }
       }
     },

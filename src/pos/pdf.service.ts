@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class PdfService {
@@ -40,7 +41,14 @@ export class PdfService {
             },
           },
         },
-        store: true,
+        store: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            region: true,
+          },
+        },
       },
     });
 
@@ -48,6 +56,7 @@ export class PdfService {
       throw new Error(`Invoice ${invoiceId} not found`);
     }
 
+    // First, try Puppeteer for better quality PDF
     const html = this.generateInvoiceHtml(invoice);
 
     let browser;
@@ -141,12 +150,163 @@ export class PdfService {
         return relativePath;
       } catch (fallbackError) {
         this.logger.error(`PDF generation fallback also failed:`, fallbackError);
-        throw new Error(`PDF generation failed: ${fallbackError.message}`);
+        try {
+          const pdfkitPath = await this.generateInvoicePdfFallback(invoiceId);
+          this.logger.log(`Generated PDF (pdfkit fallback) for invoice ${invoiceId} at ${pdfkitPath}`);
+          return pdfkitPath;
+        } catch (pdfkitError) {
+          this.logger.error(`PDFKit fallback failed for invoice ${invoiceId}:`, pdfkitError);
+          // PDFKit should always work, but if it fails, log detailed error
+          this.logger.error(`[PDFKit] Detailed error:`, {
+            message: (pdfkitError as Error).message,
+            stack: (pdfkitError as Error).stack,
+            invoiceId,
+          });
+          throw new Error(`PDF generation failed: ${(pdfkitError as Error).message}`);
+        }
       }
     } finally {
       if (browser) {
         await browser.close().catch((e) => this.logger.warn('Error closing browser:', e));
       }
+    }
+  }
+
+  /**
+   * Fallback PDF using pdfkit when Puppeteer/Chromium is unavailable.
+   * Produces a simple text-based invoice PDF.
+   * This should ALWAYS work as pdfkit is a pure Node.js library.
+   */
+  private async generateInvoicePdfFallback(invoiceId: string): Promise<string> {
+    try {
+      // Ensure storage directory exists
+      this.ensureStorageDirectories();
+      
+      const invoice = await this.prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  brand: true,
+                  category: true,
+                  manufacturer: true,
+                },
+              },
+            },
+          },
+          store: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              region: true,
+            },
+          },
+        },
+      });
+
+      if (!invoice) {
+        throw new Error(`Invoice ${invoiceId} not found`);
+      }
+
+      const invoicesDir = path.join(this.storagePath, 'invoices');
+      // Double-check directory exists
+      if (!fs.existsSync(invoicesDir)) {
+        fs.mkdirSync(invoicesDir, { recursive: true });
+        this.logger.log(`[PDFKit] Created invoices directory: ${invoicesDir}`);
+      }
+
+      const pdfPath = path.join(invoicesDir, `${invoiceId}.pdf`);
+      const relativePath = path.relative(process.cwd(), pdfPath);
+      
+      // Remove existing PDF if it exists (to avoid conflicts)
+      if (fs.existsSync(pdfPath)) {
+        try {
+          fs.unlinkSync(pdfPath);
+          this.logger.log(`[PDFKit] Removed existing PDF: ${pdfPath}`);
+        } catch (err) {
+          this.logger.warn(`[PDFKit] Could not remove existing PDF: ${err}`);
+        }
+      }
+      const str = (v: unknown) => (v != null ? String(v) : '');
+
+      return new Promise((resolve, reject) => {
+        try {
+          const doc = new PDFDocument({ margin: 50 });
+          const stream = fs.createWriteStream(pdfPath);
+          
+          // Handle stream errors
+          stream.on('error', (err) => {
+            this.logger.error(`[PDFKit] Stream error for invoice ${invoiceId}:`, err);
+            reject(new Error(`Failed to write PDF file: ${err.message}`));
+          });
+          
+          // Handle doc errors
+          doc.on('error', (err) => {
+            this.logger.error(`[PDFKit] Document error for invoice ${invoiceId}:`, err);
+            reject(new Error(`Failed to generate PDF: ${err.message}`));
+          });
+          
+          stream.on('finish', () => {
+            // Verify file was created
+            if (fs.existsSync(pdfPath)) {
+              this.logger.log(`[PDFKit] PDF created successfully at ${relativePath}`);
+              resolve(relativePath);
+            } else {
+              reject(new Error('PDF file was not created'));
+            }
+          });
+          
+          doc.pipe(stream);
+
+      doc.fontSize(20).text('INVOICE', { continued: false });
+      doc.fontSize(10).text(`Invoice #${invoice.id.substring(0, 8).toUpperCase()}`, { continued: false });
+      doc.moveDown();
+
+      doc.fontSize(11).text(`Store: ${invoice.store.name}`, { continued: false });
+      doc.text(`${invoice.store.city}, ${invoice.store.region}`, { continued: false });
+      doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, { continued: false });
+      doc.text(`Time: ${new Date(invoice.createdAt).toLocaleTimeString()}`, { continued: false });
+      if (invoice.clientInvoiceRef) {
+        doc.text(`Reference: ${invoice.clientInvoiceRef}`, { continued: false });
+      }
+      doc.moveDown();
+
+      const headerY = doc.y;
+      doc.fontSize(10).text('SKU', 50, headerY, { width: 80 });
+      doc.text('Product', 130, headerY, { width: 180 });
+      doc.text('Qty', 310, headerY, { width: 40 });
+      doc.text('Price', 350, headerY, { width: 70 });
+      doc.text('Total', 420, headerY, { width: 80 });
+      doc.moveDown(0.5);
+      const tableTop = doc.y;
+
+      for (const item of invoice.items) {
+        doc.y = tableTop + (invoice.items.indexOf(item) * 18);
+        doc.fontSize(9).text(str(item.product?.sku ?? ''), 50, doc.y, { width: 80 });
+        doc.text(str(item.product?.name ?? '').substring(0, 28), 130, doc.y, { width: 180 });
+        doc.text(str(item.qty), 310, doc.y, { width: 40 });
+        doc.text(`Rs. ${str(item.unitPrice)}`, 350, doc.y, { width: 70 });
+        doc.text(`Rs. ${str(item.lineTotal)}`, 420, doc.y, { width: 80 });
+      }
+
+      doc.y = tableTop + invoice.items.length * 18 + 15;
+      doc.fontSize(10).text(`Total Items: ${invoice.totalItems}`, 50, doc.y, { continued: false });
+      doc.fontSize(12).text(`Total Amount: Rs. ${str(invoice.totalAmount)}`, 50, doc.y + 5, { continued: false });
+      doc.moveDown();
+      doc.fontSize(9).text(`Thank you for your business! Generated on ${new Date().toLocaleString()}`, 50, doc.y, { continued: false });
+
+          doc.end();
+        } catch (err: any) {
+          this.logger.error(`[PDFKit] Error creating PDF document for invoice ${invoiceId}:`, err);
+          reject(new Error(`Failed to create PDF document: ${err?.message || err}`));
+        }
+      });
+    } catch (error: any) {
+      this.logger.error(`[PDFKit] Fatal error in generateInvoicePdfFallback for invoice ${invoiceId}:`, error);
+      throw new Error(`PDFKit fallback failed: ${error?.message || 'Unknown error'}`);
     }
   }
 

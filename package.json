@@ -29,7 +29,8 @@
     "scripts:add-barcode-products": "ts-node scripts/add-barcode-products-from-docs.ts",
     "scripts:refine-db": "ts-node scripts/refine-db.ts",
     "scripts:seed-invoices": "ts-node scripts/seed-invoices.ts",
-    "scripts:count-invoices": "ts-node scripts/count-invoices.ts"
+    "scripts:count-invoices": "ts-node scripts/count-invoices.ts",
+    "scripts:delete-all-invoices": "ts-node scripts/delete-all-invoices.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -48,12 +49,13 @@
     "express": "^4.22.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pdfkit": "^0.17.2",
+    "prisma": "^5.7.1",
     "puppeteer": "^21.6.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "socket.io": "^4.6.1",
     "swagger-ui-express": "^5.0.1",
-    "prisma": "^5.7.1",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
@@ -65,6 +67,7 @@
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pdfkit": "^0.17.4",
     "@types/supertest": "^6.0.2",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",

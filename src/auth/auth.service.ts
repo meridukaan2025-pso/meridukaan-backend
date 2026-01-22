@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -76,6 +77,72 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     return user;
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    // Check if user exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Check email uniqueness if email is being updated
+    if (updateProfileDto.email && updateProfileDto.email !== existingUser.email) {
+      const emailExists = await this.prisma.user.findUnique({
+        where: { email: updateProfileDto.email },
+      });
+
+      if (emailExists) {
+        throw new ConflictException('User with this email already exists');
+      }
+    }
+
+    // Prepare update data (only firstName, lastName, email, password allowed)
+    const updateData: any = {};
+
+    if (updateProfileDto.firstName !== undefined) {
+      updateData.firstName = updateProfileDto.firstName;
+    }
+    if (updateProfileDto.lastName !== undefined) {
+      updateData.lastName = updateProfileDto.lastName;
+    }
+    if (updateProfileDto.email) {
+      updateData.email = updateProfileDto.email;
+    }
+
+    // Hash password if provided
+    if (updateProfileDto.password) {
+      updateData.passwordHash = await bcrypt.hash(updateProfileDto.password, 10);
+    }
+
+    // Update user
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        storeId: true,
+        createdAt: true,
+        updatedAt: true,
+        store: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            region: true,
+          },
+        },
+      },
+    });
+
+    return updatedUser;
   }
 
   async signup(signupDto: SignupDto) {

@@ -1,9 +1,9 @@
 {
   "info": {
     "name": "Meri Dukaan Backend API",
-    "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints",
+    "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints. Includes all endpoints with proper authentication, examples, and descriptions.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.3.0"
+    "version": "2.5.0"
   },
   "variable": [
     {
@@ -199,12 +199,144 @@
             },
             "description": "Create a new user account and receive JWT token. Store ID is required for SALES role. First call GET /stores to get a store ID."
           }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get the authenticated user's profile information. Accessible by all authenticated users."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (!pm.collectionVariables.get('userId')) {",
+                  "        pm.collectionVariables.set('userId', jsonData.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Own Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"updated@meridukaan.com\",\n  \"password\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Update your own profile information (firstName, lastName, email, password). All fields are optional. Role and storeId cannot be changed through this endpoint - use PUT /users/:id (ADMIN only) for those. Accessible by all authenticated users."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout. JWT is stateless; client should remove token from storage. This endpoint is for consistency."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stores",
+      "item": [
+        {
+          "name": "Delete Store",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stores/:storeId",
+              "host": ["{{baseUrl}}"],
+              "path": ["stores", ":storeId"],
+              "variable": [
+                {
+                  "key": "storeId",
+                  "value": "{{storeId}}"
+                }
+              ]
+            },
+            "description": "Delete a store by ID. ADMIN only. Fails if store has users, inventory, or invoices."
+          }
         }
       ]
     },
     {
       "name": "User Management (Admin Only)",
       "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeId\": \"{{storeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Create a new user. Requires ADMIN. Store ID is required for SALES role."
+          }
+        },
         {
           "name": "Get All Users",
           "request": {
@@ -463,6 +595,115 @@
               "path": ["products"]
             },
             "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. All category, brand, and manufacturer IDs must exist. Use GET /admin/filters to get available IDs."
+          }
+        },
+        {
+          "name": "Create Product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"NEW-SKU-001\",\n  \"name\": \"Product Name\",\n  \"categoryName\": \"Beverages\",\n  \"brandName\": \"New Brand\",\n  \"manufacturerName\": \"New Manufacturer\",\n  \"unitPrice\": 50.00,\n  \"unitSizeMl\": 500,\n  \"stockQuantity\": 10,\n  \"storeId\": \"{{storeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/admin-create",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "admin-create"]
+            },
+            "description": "Create product with optional new category/brand/manufacturer by name, and optional initial stock. storeId required when stockQuantity > 0."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('productId', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/products/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":productId"],
+              "variable": [{"key": "productId", "value": "{{productId}}"}]
+            },
+            "description": "Get a product by UUID. Requires ADMIN, INVENTORY, PURCHASE, or SALES."
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product Name\",\n  \"unitPrice\": 55.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":productId"],
+              "variable": [{"key": "productId", "value": "{{productId}}"}]
+            },
+            "description": "Update product. All body fields optional. Requires ADMIN, INVENTORY, or PURCHASE."
+          }
+        },
+        {
+          "name": "Add or Reduce Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"quantity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/:productId/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":productId", "stock"],
+              "variable": [{"key": "productId", "value": "{{productId}}"}]
+            },
+            "description": "Add (positive quantity) or reduce (negative) stock at a store. Requires ADMIN, INVENTORY, or PURCHASE."
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/products/:productId",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", ":productId"],
+              "variable": [{"key": "productId", "value": "{{productId}}"}]
+            },
+            "description": "Delete a product. ADMIN only. Fails if product has been used in invoices."
           }
         }
       ]
@@ -742,6 +983,24 @@
           ]
         },
         {
+          "name": "Get All Invoices",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/pos/invoices?storeId=&dateFrom=2026-01-01&dateTo=2026-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "invoices"],
+              "query": [
+                {"key": "storeId", "value": "", "disabled": true, "description": "Filter by store ID"},
+                {"key": "dateFrom", "value": "2026-01-01", "description": "From date (YYYY-MM-DD)"},
+                {"key": "dateTo", "value": "2026-01-31", "description": "To date (YYYY-MM-DD)"}
+              ]
+            },
+            "description": "List invoices with optional filters (storeId, dateFrom, dateTo). SALES, ADMIN, INVENTORY."
+          }
+        },
+        {
           "name": "Get Invoice",
           "request": {
             "method": "GET",
@@ -787,6 +1046,20 @@
               ]
             },
             "description": "Download invoice PDF file. Accessible by SALES, ADMIN, and INVENTORY roles."
+          }
+        },
+        {
+          "name": "Delete Invoice",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/pos/invoices/:invoiceId",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "invoices", ":invoiceId"],
+              "variable": [{"key": "invoiceId", "value": "{{invoiceId}}"}]
+            },
+            "description": "Delete (void) an invoice and restore stock. ADMIN only."
           }
         }
       ]
