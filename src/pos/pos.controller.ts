@@ -132,6 +132,7 @@ export class PosController {
     description: 'Create a new invoice with items. Store ID and Worker ID are automatically set.' 
   })
   @ApiBody({
+    type: CreateInvoiceDto,
     description: 'Invoice creation request',
     examples: {
       'Example Request': {

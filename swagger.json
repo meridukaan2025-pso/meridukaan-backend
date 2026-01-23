@@ -1,24 +1,1936 @@
 {
   "openapi": "3.0.0",
-  "info": {
-    "title": "Meri Dukaan POS + Admin Analytics API",
-    "version": "1.0.0",
-    "description": "Complete API documentation for Meri Dukaan Point of Sale system with Admin Analytics",
-    "contact": {
-      "name": "API Support",
-      "email": "support@meridukaan.com"
+  "paths": {
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_getProfile",
+        "summary": "Get current user",
+        "description": "Get the authenticated user profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "AuthController_updateProfile",
+        "summary": "Update own profile",
+        "description": "Update your own profile information (firstName, lastName, email, password). Role and storeId cannot be changed through this endpoint.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "updated@meridukaan.com"
+                    },
+                    "firstName": {
+                      "type": "string",
+                      "example": "John"
+                    },
+                    "lastName": {
+                      "type": "string",
+                      "example": "Doe"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "SALES",
+                        "INVENTORY",
+                        "PURCHASE"
+                      ],
+                      "example": "SALES"
+                    },
+                    "storeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "store": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "409": {
+            "description": "Conflict - User with this email already exists"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "summary": "User login",
+        "description": "Authenticate user and receive JWT token",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "operationId": "AuthController_signup",
+        "summary": "User signup",
+        "description": "Create a new user account and receive JWT token. Store ID is required for SALES role.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                        },
+                        "email": {
+                          "type": "string",
+                          "example": "newuser@meridukaan.com"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "ADMIN",
+                            "SALES",
+                            "INVENTORY",
+                            "PURCHASE"
+                          ],
+                          "example": "SALES"
+                        },
+                        "storeId": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input or store ID required for SALES role"
+          },
+          "409": {
+            "description": "Conflict - User with this email already exists"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "User logout",
+        "description": "Logout user. This endpoint is provided for consistency, but JWT tokens are stateless and cannot be invalidated server-side. Client should remove the token from storage.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Logged out successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/stores": {
+      "get": {
+        "operationId": "StoresController_findAll",
+        "summary": "Get all stores",
+        "description": "Retrieve a list of all stores. Public endpoint - no authentication required.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of stores retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StoreResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Stores"
+        ]
+      },
+      "post": {
+        "operationId": "StoresController_create",
+        "summary": "Create a new store",
+        "description": "Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStoreDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Store created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input"
+          }
+        },
+        "tags": [
+          "Stores"
+        ]
+      }
+    },
+    "/stores/{id}": {
+      "delete": {
+        "operationId": "StoresController_remove",
+        "summary": "Delete store",
+        "description": "Delete a store by ID. ADMIN only. Fails if store has users, inventory, or invoices.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Store UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store deleted"
+          },
+          "400": {
+            "description": "Cannot delete: store has users, inventory, or invoices"
+          },
+          "404": {
+            "description": "Store not found"
+          }
+        },
+        "tags": [
+          "Stores"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/scan": {
+      "post": {
+        "operationId": "PosController_scan",
+        "summary": "Scan product QR code",
+        "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or can be specified (ADMIN users). Use the product.id from the response when creating invoices.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d",
+                          "description": "Use this product ID in invoice creation"
+                        },
+                        "sku": {
+                          "type": "string",
+                          "example": "COKE-330ML"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Coca-Cola 330ml"
+                        },
+                        "unitPrice": {
+                          "type": "number",
+                          "example": 35
+                        },
+                        "unitSizeMl": {
+                          "type": "number",
+                          "example": 330,
+                          "nullable": true
+                        },
+                        "category": {
+                          "type": "string",
+                          "example": "Soft Drinks"
+                        },
+                        "brand": {
+                          "type": "string",
+                          "example": "Coca-Cola"
+                        },
+                        "manufacturer": {
+                          "type": "string",
+                          "example": "The Coca-Cola Company"
+                        }
+                      }
+                    },
+                    "stockQty": {
+                      "type": "number",
+                      "example": 100,
+                      "description": "Available stock quantity"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or user not assigned to a store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 400
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "User is not assigned to a store"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found - use POST /products/quick-create to add this product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Product with SKU COKE-330ML not found"
+                    },
+                    "sku": {
+                      "type": "string",
+                      "example": "COKE-330ML",
+                      "description": "Scanned SKU/barcode"
+                    },
+                    "suggestion": {
+                      "type": "string",
+                      "example": "Use POST /products/quick-create to add this product manually"
+                    },
+                    "endpoint": {
+                      "type": "string",
+                      "example": "/products/quick-create"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/invoices": {
+      "post": {
+        "operationId": "PosController_createInvoice",
+        "summary": "Create invoice",
+        "description": "Create a new invoice with items. Store ID and Worker ID are automatically set.",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "Optional: Unique key to prevent duplicate invoices",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Invoice creation request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              },
+              "examples": {
+                "Example Request": {
+                  "value": {
+                    "items": [
+                      {
+                        "productId": "42ad2ddc-3bae-4dcb-8950-66c3aa31cf3d",
+                        "qty": 5
+                      }
+                    ],
+                    "clientInvoiceRef": "INV-2026-001"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string",
+                      "example": "invoice-uuid-123"
+                    },
+                    "pdfUrl": {
+                      "type": "string",
+                      "example": "/storage/invoices/invoice-uuid-123.pdf",
+                      "nullable": true
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "amount": {
+                          "type": "string",
+                          "example": "175.00"
+                        },
+                        "items": {
+                          "type": "number",
+                          "example": 5
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2026-01-19T18:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request, insufficient stock, or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 400
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507",
+                      "description": "Error message indicating which product IDs are missing or stock issues. Example: \"One or more products not found. Missing product IDs: 7f952abc-5a32-4c47-b6c6-d4316bea9507\" or \"Insufficient stock for product COKE-330ML. Available: 5, Requested: 10\""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "PosController_getAllInvoices",
+        "summary": "Get all invoices",
+        "description": "Retrieve list of all invoices with optional filters. Includes items and product details.",
+        "parameters": [
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Filter to date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Filter from date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by store ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of invoices"
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/invoices/{id}": {
+      "get": {
+        "operationId": "PosController_getInvoice",
+        "summary": "Get invoice details",
+        "description": "Retrieve full invoice details including all items",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invoice ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice found"
+          },
+          "404": {
+            "description": "Invoice not found"
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "PosController_deleteInvoice",
+        "summary": "Delete (void) invoice",
+        "description": "Delete an invoice and restore stock. ADMIN only.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invoice ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice deleted"
+          },
+          "404": {
+            "description": "Invoice not found"
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/invoices/{id}/pdf": {
+      "get": {
+        "operationId": "PosController_getInvoicePdf",
+        "summary": "Get invoice PDF",
+        "description": "Download invoice PDF file. If the PDF was not generated at invoice creation, it is generated on demand.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Invoice ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "404": {
+            "description": "Invoice not found"
+          },
+          "503": {
+            "description": "PDF generation failed (e.g. Chromium unavailable). Try again later."
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/filters": {
+      "get": {
+        "operationId": "AdminController_getFilters",
+        "summary": "Get filter options",
+        "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, etc.)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Filter options"
+          },
+          "401": {
+            "description": "Unauthorized - Admin role required"
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/summary": {
+      "get": {
+        "operationId": "AdminController_getSummary",
+        "summary": "Get dashboard summary",
+        "description": "Get summary metrics for admin dashboard (total sales, invoices, AOV, etc.)",
+        "parameters": [
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by store ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary metrics"
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/sales-trend": {
+      "get": {
+        "operationId": "AdminController_getSalesTrend",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/brand-distribution": {
+      "get": {
+        "operationId": "AdminController_getBrandDistribution",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/market-share": {
+      "get": {
+        "operationId": "AdminController_getMarketShare",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/brands": {
+      "get": {
+        "operationId": "AdminController_getBrands",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/analytics/top-skus": {
+      "get": {
+        "operationId": "AdminController_getTopSkus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "summary": "Create a new user",
+        "description": "Create a new user account. Requires ADMIN role. Store ID is required for SALES role.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "newuser@meridukaan.com"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "SALES",
+                        "INVENTORY",
+                        "PURCHASE"
+                      ],
+                      "example": "SALES"
+                    },
+                    "storeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "store": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input or store ID required for SALES role"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Requires ADMIN role"
+          },
+          "409": {
+            "description": "Conflict - User with this email already exists"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "summary": "Get all users",
+        "description": "Retrieve a list of all users. Requires ADMIN role.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "email": {
+                        "type": "string",
+                        "example": "user@meridukaan.com"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "ADMIN",
+                          "SALES",
+                          "INVENTORY",
+                          "PURCHASE"
+                        ],
+                        "example": "SALES"
+                      },
+                      "storeId": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "store": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "region": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Requires ADMIN role"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "summary": "Get user by ID",
+        "description": "Retrieve a specific user by their ID. Requires ADMIN role.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User UUID",
+            "schema": {
+              "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "user@meridukaan.com"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "SALES",
+                        "INVENTORY",
+                        "PURCHASE"
+                      ],
+                      "example": "SALES"
+                    },
+                    "storeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "store": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Requires ADMIN role"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_update",
+        "summary": "Update user",
+        "description": "Update user information. All fields are optional. Requires ADMIN role.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User UUID",
+            "schema": {
+              "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "updated@meridukaan.com"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "ADMIN",
+                        "SALES",
+                        "INVENTORY",
+                        "PURCHASE"
+                      ],
+                      "example": "SALES"
+                    },
+                    "storeId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "store": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input or store ID required for SALES role"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Requires ADMIN role"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "Conflict - User with this email already exists"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "summary": "Delete user",
+        "description": "Delete a user by ID. Requires ADMIN role.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "User UUID",
+            "schema": {
+              "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User with ID xxx has been deleted successfully"
+                    },
+                    "deletedUser": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Requires ADMIN role"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products": {
+      "post": {
+        "operationId": "ProductsController_create",
+        "summary": "Create product",
+        "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. All category, brand, and manufacturer IDs must exist.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
+                    "sku": {
+                      "type": "string",
+                      "example": "PRODUCT-001"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Product Name"
+                    },
+                    "unitPrice": {
+                      "type": "number",
+                      "example": 50
+                    },
+                    "unitSizeMl": {
+                      "type": "number",
+                      "example": 500,
+                      "nullable": true
+                    },
+                    "category": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "manufacturer": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "manufacturer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input"
+          },
+          "404": {
+            "description": "Category, Brand, or Manufacturer not found"
+          },
+          "409": {
+            "description": "Product with this SKU already exists"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ProductsController_findAll",
+        "summary": "Get all products",
+        "description": "Retrieve a list of all products with their category, brand, and manufacturer details. Requires ADMIN, INVENTORY, PURCHASE, or SALES role.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "sku": {
+                        "type": "string",
+                        "example": "COKE-330ML"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Coca-Cola 330ml"
+                      },
+                      "unitPrice": {
+                        "type": "number",
+                        "example": 35
+                      },
+                      "unitSizeMl": {
+                        "type": "number",
+                        "example": 330,
+                        "nullable": true
+                      },
+                      "category": {
+                        "type": "object"
+                      },
+                      "brand": {
+                        "type": "object"
+                      },
+                      "manufacturer": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products/admin-create": {
+      "post": {
+        "operationId": "ProductsController_createFromAdmin",
+        "summary": "Create product (admin)",
+        "description": "Create product with optional new category/brand/manufacturer by name, and optional initial stock per store.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductAdminDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created"
+          },
+          "400": {
+            "description": "Invalid input: e.g. need categoryId or categoryName; storeId when stockQuantity>0"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products/quick-create": {
+      "post": {
+        "operationId": "ProductsController_quickCreate",
+        "summary": "Quick create product (POS)",
+        "description": "Quickly create a product when barcode doesn't match. Automatically creates category, brand, and manufacturer if they don't exist. Requires SALES or ADMIN role. Use this when scanning an unknown barcode - SKU will be pre-filled from scan error.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuickCreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully. Product ID is returned immediately for use in invoice creation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+                      "description": "Use this product ID in invoice creation"
+                    },
+                    "sku": {
+                      "type": "string",
+                      "example": "NEW-PRODUCT-001"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "New Product Name"
+                    },
+                    "unitPrice": {
+                      "type": "number",
+                      "example": 50
+                    },
+                    "unitSizeMl": {
+                      "type": "number",
+                      "example": 500,
+                      "nullable": true
+                    },
+                    "category": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Soft Drinks"
+                        }
+                      }
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "New Brand"
+                        },
+                        "manufacturer": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "New Manufacturer"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "manufacturer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "New Manufacturer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input or user not assigned to store"
+          },
+          "409": {
+            "description": "Product with this SKU already exists"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products/sku/{sku}": {
+      "get": {
+        "operationId": "ProductsController_findBySku",
+        "summary": "Get product by SKU",
+        "description": "Retrieve a product by its SKU (barcode). Accessible by all authenticated users. Use this to verify if a product exists before scanning.",
+        "parameters": [
+          {
+            "name": "sku",
+            "required": true,
+            "in": "path",
+            "description": "Product SKU (barcode)",
+            "schema": {
+              "example": "COKE-330ML",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product found"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "operationId": "ProductsController_findById",
+        "summary": "Get product by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product found"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "ProductsController_update",
+        "summary": "Update product",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "ProductsController_remove",
+        "summary": "Delete product",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product deleted"
+          },
+          "400": {
+            "description": "Cannot delete: product has been used in invoices"
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/products/{id}/stock": {
+      "post": {
+        "operationId": "ProductsController_addStock",
+        "summary": "Add or reduce stock",
+        "description": "Adjust stock at a store. quantity: positive to add, negative to reduce.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddStockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock updated"
+          },
+          "400": {
+            "description": "Would result in negative stock"
+          },
+          "404": {
+            "description": "Product or store not found"
+          }
+        },
+        "tags": [
+          "Products"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
     }
   },
-  "servers": [
-    {
-      "url": "http://localhost:3001",
-      "description": "Development server"
-    },
-    {
-      "url": "https://api.meridukaan.com",
-      "description": "Production server"
-    }
-  ],
+  "info": {
+    "title": "Meri Dukaan POS + Admin Analytics API",
+    "description": "Complete API documentation for Meri Dukaan Point of Sale system with Admin Analytics",
+    "version": "1.0.0",
+    "contact": {}
+  },
   "tags": [
     {
       "name": "Authentication",
@@ -29,82 +1941,156 @@
       "description": "Store information endpoints"
     },
     {
+      "name": "Users",
+      "description": "User management endpoints (ADMIN only)"
+    },
+    {
+      "name": "Products",
+      "description": "Product management endpoints"
+    },
+    {
       "name": "POS",
       "description": "Point of Sale operations"
     },
     {
       "name": "Admin",
       "description": "Admin analytics and dashboard endpoints"
-    },
-    { "name": "Users", "description": "User management (ADMIN only)" },
-    { "name": "Products", "description": "Product CRUD and stock" }
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Local development server"
+    }
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
+      "JWT-auth": {
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "JWT token obtained from /auth/login"
+        "type": "http",
+        "name": "JWT",
+        "description": "Enter JWT token",
+        "in": "header"
       }
     },
     "schemas": {
-      "LoginRequest": {
+      "UpdateProfileDto": {
         "type": "object",
-        "required": ["email", "password"],
         "properties": {
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "First name"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe",
+            "description": "Last name"
+          },
           "email": {
             "type": "string",
-            "format": "email",
-            "example": "sales1@meridukaan.com"
+            "example": "updated@meridukaan.com",
+            "description": "User email address (must be unique)"
           },
           "password": {
             "type": "string",
-            "minLength": 6,
-            "example": "password123"
+            "example": "newPassword123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
           }
         }
       },
-      "LoginResponse": {
+      "LoginDto": {
         "type": "object",
         "properties": {
-          "access_token": {
-            "type": "string",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
           "email": {
             "type": "string",
-            "format": "email"
+            "example": "sales1@meridukaan.com",
+            "description": "User email address"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UserRole": {
+        "type": "string",
+        "description": "User role",
+        "enum": [
+          "ADMIN",
+          "SALES",
+          "INVENTORY",
+          "PURCHASE"
+        ]
+      },
+      "SignupDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "newuser@meridukaan.com",
+            "description": "User email address (must be unique)"
+          },
+          "password": {
+            "type": "string",
+            "example": "securePassword123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
           },
           "role": {
-            "type": "string",
-            "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"]
+            "example": "SALES",
+            "$ref": "#/components/schemas/UserRole"
           },
           "storeId": {
             "type": "string",
-            "format": "uuid",
-            "nullable": true
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store ID (optional - use storeName instead to create new store during signup)"
+          },
+          "storeName": {
+            "type": "string",
+            "example": "My Store Name",
+            "description": "Store name (optional - if provided, store will be created and storeId will be assigned automatically)"
+          },
+          "storeRegion": {
+            "type": "string",
+            "example": "Punjab",
+            "description": "Store region (optional - required if storeName is provided)"
+          },
+          "storeCity": {
+            "type": "string",
+            "example": "Lahore",
+            "description": "Store city (optional - required if storeName is provided)"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "John",
+            "description": "First name"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Doe",
+            "description": "Last name"
           }
-        }
+        },
+        "required": [
+          "email",
+          "password",
+          "role"
+        ]
       },
-      "Store": {
+      "StoreResponseDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
             "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
             "description": "Store UUID"
           },
@@ -124,1637 +2110,409 @@
             "description": "Store city"
           },
           "createdAt": {
-            "type": "string",
             "format": "date-time",
+            "type": "string",
             "example": "2026-01-15T10:00:00.000Z",
             "description": "Store creation timestamp"
           },
           "updatedAt": {
-            "type": "string",
             "format": "date-time",
+            "type": "string",
             "example": "2026-01-15T10:00:00.000Z",
             "description": "Store last update timestamp"
           }
-        }
+        },
+        "required": [
+          "id",
+          "name",
+          "region",
+          "city",
+          "createdAt",
+          "updatedAt"
+        ]
       },
-      "ScanRequest": {
+      "CreateStoreDto": {
         "type": "object",
-        "required": ["qrValue"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "My Store Name",
+            "description": "Store name"
+          },
+          "region": {
+            "type": "string",
+            "example": "Punjab",
+            "description": "Store region (optional, defaults to empty string)"
+          },
+          "city": {
+            "type": "string",
+            "example": "Lahore",
+            "description": "Store city (optional, defaults to empty string)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ScanDto": {
+        "type": "object",
         "properties": {
           "qrValue": {
             "type": "string",
             "example": "COKE-330ML",
             "description": "QR code value (Product SKU). Store ID is automatically taken from your assigned store."
           }
-        }
+        },
+        "required": [
+          "qrValue"
+        ]
       },
-      "ScanResponse": {
+      "InvoiceItemDto": {
         "type": "object",
-        "properties": {
-          "product": {
-            "$ref": "#/components/schemas/Product"
-          },
-          "stockQty": {
-            "type": "integer",
-            "example": 50
-          }
-        }
-      },
-      "Product": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "sku": {
-            "type": "string",
-            "example": "COKE-330ML"
-          },
-          "name": {
-            "type": "string",
-            "example": "Coca-Cola 330ml"
-          },
-          "unitPrice": {
-            "type": "string",
-            "example": "35.00"
-          },
-          "category": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "example": "Beverages"
-              }
-            }
-          },
-          "brand": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "example": "Coca-Cola"
-              }
-            }
-          }
-        }
-      },
-      "InvoiceItemRequest": {
-        "type": "object",
-        "required": ["productId", "qty"],
         "properties": {
           "productId": {
             "type": "string",
-            "format": "uuid"
+            "example": "abc-123-def-456-ghi",
+            "description": "Product UUID"
           },
           "qty": {
-            "type": "integer",
-            "minimum": 1,
-            "example": 5
+            "type": "number",
+            "example": 5,
+            "description": "Quantity to purchase",
+            "minimum": 1
           }
-        }
+        },
+        "required": [
+          "productId",
+          "qty"
+        ]
       },
-      "CreateInvoiceRequest": {
+      "CreateInvoiceDto": {
         "type": "object",
-        "required": ["items"],
         "properties": {
           "storeId": {
             "type": "string",
-            "format": "uuid",
-            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
-            "description": "Optional. Automatically set from your assigned store for SALES users. Required for ADMIN users if not assigned to a store."
+            "description": "Store UUID (optional). Automatically set for SALES users."
           },
           "items": {
+            "example": [
+              {
+                "productId": "abc-123-def-456-ghi",
+                "qty": 5
+              }
+            ],
+            "description": "Array of invoice items",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/InvoiceItemRequest"
-            },
-            "minItems": 1,
-            "description": "Array of invoice items"
+              "$ref": "#/components/schemas/InvoiceItemDto"
+            }
           },
           "clientInvoiceRef": {
             "type": "string",
-            "description": "Optional client invoice reference",
-            "example": "INV-2026-001"
+            "example": "INV-2026-001",
+            "description": "Optional client invoice reference"
           }
-        }
+        },
+        "required": [
+          "items"
+        ]
       },
-      "InvoiceItem": {
+      "CreateUserDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "email": {
             "type": "string",
-            "format": "uuid"
+            "example": "newuser@meridukaan.com",
+            "description": "User email address (must be unique)"
           },
-          "productId": {
+          "password": {
             "type": "string",
-            "format": "uuid"
+            "example": "securePassword123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
           },
-          "qty": {
-            "type": "integer"
-          },
-          "unitPrice": {
-            "type": "string",
-            "example": "35.00"
-          },
-          "lineTotal": {
-            "type": "string",
-            "example": "175.00"
-          },
-          "product": {
-            "$ref": "#/components/schemas/Product"
-          }
-        }
-      },
-      "Invoice": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
+          "role": {
+            "example": "SALES",
+            "$ref": "#/components/schemas/UserRole"
           },
           "storeId": {
             "type": "string",
-            "format": "uuid"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store ID (required for SALES role)"
           },
-          "workerId": {
+          "firstName": {
             "type": "string",
-            "format": "uuid"
+            "example": "John",
+            "description": "First name"
           },
-          "totalAmount": {
+          "lastName": {
             "type": "string",
-            "example": "175.00"
-          },
-          "totalItems": {
-            "type": "integer",
-            "example": 5
-          },
-          "status": {
+            "example": "Doe",
+            "description": "Last name"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "role"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
             "type": "string",
-            "enum": ["COMPLETED", "CANCELLED"],
-            "example": "COMPLETED"
+            "example": "John",
+            "description": "First name"
           },
-          "pdfUrl": {
+          "lastName": {
             "type": "string",
-            "example": "/storage/invoices/invoice-uuid.pdf"
+            "example": "Doe",
+            "description": "Last name"
           },
-          "createdAt": {
+          "email": {
             "type": "string",
-            "format": "date-time"
+            "example": "updated@meridukaan.com",
+            "description": "User email address (must be unique)"
           },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InvoiceItem"
-            }
+          "password": {
+            "type": "string",
+            "example": "newPassword123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
+          },
+          "role": {
+            "example": "SALES",
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "storeId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store ID (required for SALES role)"
           }
         }
       },
-      "FiltersResponse": {
+      "CreateProductDto": {
         "type": "object",
         "properties": {
-          "regions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": ["Punjab", "Sindh", "Islamabad Capital Territory"]
-          },
-          "cities": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "example": ["Lahore", "Karachi", "Islamabad"]
-          },
-          "stores": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "region": {
-                  "type": "string"
-                },
-                "city": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "parentId": {
-                  "type": "string",
-                  "format": "uuid",
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "manufacturers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "brands": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "manufacturerId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "manufacturerName": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "AnalyticsSummary": {
-        "type": "object",
-        "properties": {
-          "salesValue": {
+          "sku": {
             "type": "string",
-            "example": "50000.00"
+            "example": "NEW-PRODUCT-001",
+            "description": "Product SKU (barcode/QR code value) - must be unique"
           },
-          "salesVolume": {
-            "type": "integer",
-            "example": 150
+          "name": {
+            "type": "string",
+            "example": "New Product Name",
+            "description": "Product name"
           },
-          "distribution": {
+          "categoryId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Category ID"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Brand ID"
+          },
+          "manufacturerId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Manufacturer ID"
+          },
+          "unitPrice": {
             "type": "number",
-            "example": 75.5
+            "example": 50,
+            "description": "Unit price",
+            "minimum": 0
           },
-          "weightedDistribution": {
+          "unitSizeMl": {
             "type": "number",
-            "example": 75.5
+            "example": 500,
+            "description": "Unit size in milliliters (optional)"
+          }
+        },
+        "required": [
+          "sku",
+          "name",
+          "categoryId",
+          "brandId",
+          "manufacturerId",
+          "unitPrice"
+        ]
+      },
+      "CreateProductAdminDto": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "example": "NEW-SKU-001",
+            "description": "Product SKU (barcode) - must be unique"
           },
-          "shareInShops": {
+          "name": {
+            "type": "string",
+            "example": "Product Name"
+          },
+          "categoryId": {
+            "type": "string",
+            "description": "Use existing category by ID"
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Beverages",
+            "description": "Create or use existing category by name"
+          },
+          "brandId": {
+            "type": "string",
+            "description": "Use existing brand by ID"
+          },
+          "brandName": {
+            "type": "string",
+            "example": "New Brand",
+            "description": "Create or use existing brand by name (requires manufacturer)"
+          },
+          "manufacturerId": {
+            "type": "string",
+            "description": "Use existing manufacturer by ID (required when brandName is used)"
+          },
+          "manufacturerName": {
+            "type": "string",
+            "example": "New Manufacturer",
+            "description": "Create or use existing manufacturer by name"
+          },
+          "unitPrice": {
             "type": "number",
-            "example": 60.0
+            "example": 50,
+            "minimum": 0
           },
-          "avgPricePerLitre": {
+          "unitSizeMl": {
+            "type": "number",
+            "example": 500
+          },
+          "stockQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Initial stock; requires storeId if > 0"
+          },
+          "storeId": {
             "type": "string",
-            "example": "45.50"
-          },
-          "avgPricePerSKU": {
+            "description": "Store to add initial stock to; required when stockQuantity > 0"
+          }
+        },
+        "required": [
+          "sku",
+          "name",
+          "unitPrice"
+        ]
+      },
+      "QuickCreateProductDto": {
+        "type": "object",
+        "properties": {
+          "sku": {
             "type": "string",
-            "example": "333.33"
-          }
-        }
-      },
-      "SalesTrend": {
-        "type": "object",
-        "properties": {
-          "bucket": {
+            "example": "NEW-PRODUCT-001",
+            "description": "Product SKU (barcode/QR code value) - must be unique"
+          },
+          "name": {
             "type": "string",
-            "enum": ["daily", "weekly"],
-            "example": "daily"
+            "example": "New Product Name",
+            "description": "Product name"
           },
-          "series": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "date": {
-                  "type": "string",
-                  "format": "date",
-                  "example": "2026-01-09"
-                },
-                "salesValue": {
-                  "type": "string",
-                  "example": "5000.00"
-                },
-                "salesVolume": {
-                  "type": "integer",
-                  "example": 25
-                }
-              }
-            }
-          }
-        }
-      },
-      "BrandDistribution": {
-        "type": "object",
-        "properties": {
-          "rows": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "brandId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "brandName": {
-                  "type": "string"
-                },
-                "salesValue": {
-                  "type": "string"
-                },
-                "salesVolume": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        }
-      },
-      "MarketShare": {
-        "type": "object",
-        "properties": {
-          "metric": {
+          "categoryName": {
             "type": "string",
-            "enum": ["value", "volume"],
-            "example": "value"
+            "example": "Soft Drinks",
+            "description": "Category name (will create if doesn't exist)"
           },
-          "slices": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string"
-                },
-                "value": {
-                  "type": "number",
-                  "description": "Percentage",
-                  "example": 45.5
-                }
-              }
-            }
-          }
-        }
-      },
-      "BrandsList": {
-        "type": "object",
-        "properties": {
-          "rows": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "brandId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "brandName": {
-                  "type": "string"
-                },
-                "salesValue": {
-                  "type": "string"
-                },
-                "shareValue": {
-                  "type": "string"
-                },
-                "avgPrice": {
-                  "type": "string"
-                },
-                "avgPricePerLitre": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "pagination": {
-            "type": "object",
-            "properties": {
-              "page": {
-                "type": "integer"
-              },
-              "pageSize": {
-                "type": "integer"
-              },
-              "total": {
-                "type": "integer"
-              },
-              "totalPages": {
-                "type": "integer"
-              }
-            }
-          }
-        }
-      },
-      "TopSKUs": {
-        "type": "object",
-        "properties": {
-          "rows": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "sku": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "brandName": {
-                  "type": "string"
-                },
-                "salesValue": {
-                  "type": "string"
-                },
-                "salesVolume": {
-                  "type": "integer"
-                }
-              }
-            }
-          }
-        }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "integer",
-            "example": 400
-          },
-          "timestamp": {
+          "brandName": {
             "type": "string",
-            "format": "date-time"
+            "example": "New Brand",
+            "description": "Brand name (will create if doesn't exist)"
           },
-          "path": {
+          "manufacturerName": {
             "type": "string",
-            "example": "/pos/invoices"
+            "example": "New Manufacturer",
+            "description": "Manufacturer name (will create if doesn't exist)"
           },
-          "method": {
+          "unitPrice": {
+            "type": "number",
+            "example": 50,
+            "description": "Unit price",
+            "minimum": 0
+          },
+          "unitSizeMl": {
+            "type": "number",
+            "example": 500,
+            "description": "Unit size in milliliters (optional)"
+          },
+          "stockQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Initial stock quantity for the current store. Required."
+          }
+        },
+        "required": [
+          "sku",
+          "name",
+          "categoryName",
+          "brandName",
+          "manufacturerName",
+          "unitPrice",
+          "stockQuantity"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "sku": {
             "type": "string",
-            "example": "POST"
+            "example": "UPDATED-SKU-001",
+            "description": "Product SKU (must stay unique)"
           },
-          "message": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+          "name": {
+            "type": "string",
+            "example": "Updated Product Name"
+          },
+          "categoryId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+          },
+          "manufacturerId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 55,
+            "minimum": 0
+          },
+          "unitSizeMl": {
+            "type": "number",
+            "example": 500
           }
         }
       },
-      "CreateUserRequest": {
+      "AddStockDto": {
         "type": "object",
-        "required": ["email", "password", "role"],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string", "minLength": 6 },
-          "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
-          "storeId": { "type": "string", "format": "uuid" }
-        }
-      },
-      "CreateProductAdminRequest": {
-        "type": "object",
-        "required": ["sku", "name", "unitPrice"],
-        "properties": {
-          "sku": { "type": "string" },
-          "name": { "type": "string" },
-          "categoryId": { "type": "string", "format": "uuid" },
-          "categoryName": { "type": "string" },
-          "brandId": { "type": "string", "format": "uuid" },
-          "brandName": { "type": "string" },
-          "manufacturerId": { "type": "string", "format": "uuid" },
-          "manufacturerName": { "type": "string" },
-          "unitPrice": { "type": "number" },
-          "unitSizeMl": { "type": "number" },
-          "stockQuantity": { "type": "integer" },
-          "storeId": { "type": "string", "format": "uuid" }
-        }
-      },
-      "AddStockRequest": {
-        "type": "object",
-        "required": ["storeId", "quantity"],
-        "properties": {
-          "storeId": { "type": "string", "format": "uuid" },
-          "quantity": { "type": "integer" }
-        }
-      }
-    }
-  },
-  "paths": {
-    "/auth/login": {
-      "post": {
-        "tags": ["Authentication"],
-        "summary": "User login",
-        "description": "Authenticate user and receive JWT token",
-        "operationId": "login",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
+          "storeId": {
+            "type": "string",
+            "description": "Store to add or reduce stock in"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Quantity to add (positive) or reduce (negative)"
           }
         },
-        "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/signup": {
-      "post": {
-        "tags": ["Authentication"],
-        "summary": "User signup",
-        "description": "Create a new user account and receive JWT token. \n\n**New Flow (Recommended):** Provide storeName (and optionally storeRegion, storeCity) - API will create store automatically and assign storeId.\n\n**Alternative:** Provide storeId (existing store) - use GET /stores to get a store ID first.\n\nFor SALES role, either storeName or storeId is required.",
-        "operationId": "signup",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email", "password", "role"],
-                "properties": {
-                  "email": { "type": "string", "format": "email", "example": "newuser@meridukaan.com" },
-                  "password": { "type": "string", "minLength": 6, "example": "securePassword123" },
-                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"], "example": "SALES" },
-                  "storeId": { "type": "string", "format": "uuid", "description": "Store ID (optional - use storeName instead to create new store during signup)", "example": "4158f662-9e15-42ef-9c4e-345b9465693c" },
-                  "storeName": { "type": "string", "description": "Store name (optional - if provided, store will be created and storeId will be assigned automatically)", "example": "My Store Name" },
-                  "storeRegion": { "type": "string", "description": "Store region (optional - recommended if storeName is provided)", "example": "Punjab" },
-                  "storeCity": { "type": "string", "description": "Store city (optional - recommended if storeName is provided)", "example": "Lahore" },
-                  "firstName": { "type": "string", "example": "John" },
-                  "lastName": { "type": "string", "example": "Doe" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "User created successfully" },
-          "400": { "description": "Bad request - Invalid input or store ID/name required for SALES role" },
-          "409": { "description": "Conflict - Email already exists" }
-        }
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "tags": ["Authentication"],
-        "summary": "Logout",
-        "description": "Logout. Client should remove token. JWT is stateless.",
-        "operationId": "logout",
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": {
-            "description": "Logged out",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "message": { "type": "string" } }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/stores": {
-      "get": {
-        "tags": ["Stores"],
-        "summary": "Get all stores",
-        "description": "Retrieve a list of all stores. Public endpoint - no authentication required.",
-        "operationId": "getAllStores",
-        "responses": {
-          "200": {
-            "description": "List of stores retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Store"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Stores"],
-        "summary": "Create a new store",
-        "description": "Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID. Region and city are optional.",
-        "operationId": "createStore",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "My New Store",
-                    "description": "Store name"
-                  },
-                  "region": {
-                    "type": "string",
-                    "example": "Punjab",
-                    "description": "Store region (optional)"
-                  },
-                  "city": {
-                    "type": "string",
-                    "example": "Lahore",
-                    "description": "Store city (optional)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Store created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Store"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Invalid input"
-          }
-        }
-      }
-    },
-    "/stores/{id}": {
-      "delete": {
-        "tags": ["Stores"],
-        "summary": "Delete store",
-        "description": "Delete a store by ID. ADMIN only.",
-        "operationId": "deleteStore",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
-        ],
-        "responses": {
-          "200": { "description": "Store deleted" },
-          "400": { "description": "Cannot delete: store has users, inventory, or invoices" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden" },
-          "404": { "description": "Store not found" }
-        }
-      }
-    },
-    "/users": {
-      "post": {
-        "tags": ["Users"],
-        "summary": "Create user",
-        "description": "Create a new user. ADMIN only. Store ID required for SALES.",
-        "operationId": "createUser",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "User created" },
-          "400": { "description": "Bad request" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden" },
-          "409": { "description": "Email already exists" }
-        }
-      },
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get all users",
-        "description": "Retrieve all users. ADMIN only.",
-        "operationId": "getAllUsers",
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": { "description": "List of users" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden" }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get user by ID",
-        "operationId": "getUser",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "User found" }, "404": { "description": "User not found" } }
-      },
-      "put": {
-        "tags": ["Users"],
-        "summary": "Update user",
-        "description": "Update user. All fields optional. ADMIN only.",
-        "operationId": "updateUser",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": { "type": "string" },
-                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
-                  "storeId": { "type": "string", "format": "uuid" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "User updated" }, "400": { "description": "Bad request" }, "404": { "description": "User not found" } }
-      },
-      "delete": {
-        "tags": ["Users"],
-        "summary": "Delete user",
-        "operationId": "deleteUser",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "User deleted" }, "404": { "description": "User not found" } }
-      }
-    },
-    "/products": {
-      "post": {
-        "tags": ["Products"],
-        "summary": "Create product (full)",
-        "description": "Create product with existing category, brand, manufacturer IDs.",
-        "operationId": "createProduct",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["sku", "name", "categoryId", "brandId", "manufacturerId", "unitPrice"],
-                "properties": {
-                  "sku": { "type": "string" },
-                  "name": { "type": "string" },
-                  "categoryId": { "type": "string", "format": "uuid" },
-                  "brandId": { "type": "string", "format": "uuid" },
-                  "manufacturerId": { "type": "string", "format": "uuid" },
-                  "unitPrice": { "type": "number" },
-                  "unitSizeMl": { "type": "number" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" }, "404": { "description": "Not found" } }
-      },
-      "get": {
-        "tags": ["Products"],
-        "summary": "Get all products",
-        "description": "List all products.",
-        "operationId": "getAllProducts",
-        "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "List of products" }, "401": { "description": "Unauthorized" } }
-      }
-    },
-    "/products/admin-create": {
-      "post": {
-        "tags": ["Products"],
-        "summary": "Create product (admin)",
-        "description": "Create with optional new category/brand/manufacturer by name. storeId required when stockQuantity > 0.",
-        "operationId": "createProductAdmin",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateProductAdminRequest" }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" } }
-      }
-    },
-    "/products/quick-create": {
-      "post": {
-        "tags": ["Products"],
-        "summary": "Quick create product (POS)",
-        "description": "Create when barcode unknown. Auto-creates category, brand, manufacturer. SALES or ADMIN.",
-        "operationId": "quickCreateProduct",
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["sku", "name", "categoryName", "brandName", "manufacturerName", "unitPrice"],
-                "properties": {
-                  "sku": { "type": "string" },
-                  "name": { "type": "string" },
-                  "categoryName": { "type": "string" },
-                  "brandName": { "type": "string" },
-                  "manufacturerName": { "type": "string" },
-                  "unitPrice": { "type": "number" },
-                  "unitSizeMl": { "type": "number" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Product created" }, "400": { "description": "Bad request" }, "409": { "description": "SKU exists" } }
-      }
-    },
-    "/products/sku/{sku}": {
-      "get": {
-        "tags": ["Products"],
-        "summary": "Get product by SKU",
-        "operationId": "getProductBySku",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "sku", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Product found" }, "404": { "description": "Product not found" } }
-      }
-    },
-    "/products/{id}": {
-      "get": {
-        "tags": ["Products"],
-        "summary": "Get product by ID",
-        "operationId": "getProductById",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Product found" }, "404": { "description": "Product not found" } }
-      },
-      "put": {
-        "tags": ["Products"],
-        "summary": "Update product",
-        "operationId": "updateProduct",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": { "type": "string" },
-                  "categoryId": { "type": "string", "format": "uuid" },
-                  "brandId": { "type": "string", "format": "uuid" },
-                  "manufacturerId": { "type": "string", "format": "uuid" },
-                  "unitPrice": { "type": "number" },
-                  "unitSizeMl": { "type": "number" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Product updated" }, "404": { "description": "Product not found" } }
-      },
-      "delete": {
-        "tags": ["Products"],
-        "summary": "Delete product",
-        "description": "ADMIN only. Fails if product used in invoices.",
-        "operationId": "deleteProduct",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": { "200": { "description": "Product deleted" }, "400": { "description": "Cannot delete" }, "404": { "description": "Product not found" } }
-      }
-    },
-    "/products/{id}/stock": {
-      "post": {
-        "tags": ["Products"],
-        "summary": "Add or reduce stock",
-        "description": "quantity: positive to add, negative to reduce.",
-        "operationId": "addStock",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AddStockRequest" }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Stock updated" }, "400": { "description": "Negative stock" }, "404": { "description": "Not found" } }
-      }
-    },
-    "/pos/scan": {
-      "post": {
-        "tags": ["POS"],
-        "summary": "Scan product QR code",
-        "description": "Scan QR code (SKU) and get product details with available stock. Store ID is automatically taken from your assigned store (SALES users) or your assigned store (ADMIN users). Only qrValue is required in the request body.",
-        "operationId": "scanProduct",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ScanRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Product found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScanResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Product not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pos/invoices": {
-      "post": {
-        "tags": ["POS"],
-        "summary": "Create invoice",
-        "description": "Create a new invoice with items. Store ID and Worker ID are automatically set from your user account. For SALES users, storeId is auto-set from assigned store. For ADMIN users, storeId can be optionally specified or uses assigned store. Worker ID is always set to current user. This is a transactional operation that validates store and worker, locks inventory, checks stock availability, creates invoice and items, updates inventory, generates PDF, and emits WebSocket events.",
-        "operationId": "createInvoice",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateInvoiceRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Invoice created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request or insufficient stock",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": ["POS"],
-        "summary": "Get all invoices",
-        "description": "List invoices. Query: storeId, dateFrom, dateTo.",
-        "operationId": "getAllInvoices",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          { "name": "storeId", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "dateFrom", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
-          { "name": "dateTo", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } }
-        ],
-        "responses": { "200": { "description": "List of invoices" }, "401": { "description": "Unauthorized" } }
-      }
-    },
-    "/pos/invoices/{id}": {
-      "get": {
-        "tags": ["POS"],
-        "summary": "Get invoice details",
-        "description": "Retrieve full invoice details including all items",
-        "operationId": "getInvoice",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "Invoice ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Invoice found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Invoice"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Invoice not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": ["POS"],
-        "summary": "Delete (void) invoice",
-        "description": "Delete invoice and restore stock. ADMIN only.",
-        "operationId": "deleteInvoice",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
-        ],
-        "responses": {
-          "200": { "description": "Invoice deleted" },
-          "401": { "description": "Unauthorized" },
-          "403": { "description": "Forbidden" },
-          "404": { "description": "Invoice not found" }
-        }
-      }
-    },
-    "/pos/invoices/{id}/pdf": {
-      "get": {
-        "tags": ["POS"],
-        "summary": "Get invoice PDF",
-        "description": "Download invoice PDF file",
-        "operationId": "getInvoicePdf",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "Invoice ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "PDF file",
-            "content": {
-              "application/pdf": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "PDF not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/filters": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get filter options",
-        "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, etc.)",
-        "operationId": "getFilters",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Filter options",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FiltersResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Admin role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/summary": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get dashboard summary",
-        "description": "Get summary metrics for admin dashboard (total sales, invoices, AOV, etc.)",
-        "operationId": "getSummary",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "example": "2026-01-01"
-            },
-            "description": "Start date (YYYY-MM-DD)"
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "example": "2026-12-31"
-            },
-            "description": "End date (YYYY-MM-DD)"
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "Filter by store ID (optional)"
-          },
-          {
-            "name": "region",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by region (optional)"
-          },
-          {
-            "name": "city",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter by city (optional)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Summary metrics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AnalyticsSummary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/sales-trend": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get sales trend",
-        "description": "Get sales trend data for line chart (daily or weekly buckets)",
-        "operationId": "getSalesTrend",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "bucket",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": ["daily", "weekly"],
-              "default": "daily"
-            },
-            "description": "Time bucket for grouping"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sales trend data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SalesTrend"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/brand-distribution": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get brand distribution",
-        "description": "Get brand distribution data for pie chart",
-        "operationId": "getBrandDistribution",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Brand distribution data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrandDistribution"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/market-share": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get market share",
-        "description": "Get market share data by brand or manufacturer",
-        "operationId": "getMarketShare",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "metric",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": ["value", "volume"],
-              "default": "value"
-            },
-            "description": "Metric type: value (sales amount) or volume (quantity)"
-          },
-          {
-            "name": "brandId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "Filter by brand (optional)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Market share data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarketShare"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/brands": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get brands list",
-        "description": "Get brands list with sales data (paginated)",
-        "operationId": "getBrands",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 10
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "salesValue"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Brands list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BrandsList"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/analytics/top-skus": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Get top SKUs",
-        "description": "Get top selling SKUs (products)",
-        "operationId": "getTopSkus",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "storeId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "default": 10
-            },
-            "description": "Number of top SKUs to return"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Top SKUs list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopSKUs"
-                }
-              }
-            }
-          }
-        }
+        "required": [
+          "storeId",
+          "quantity"
+        ]
       }
     }
   }
 }
-
