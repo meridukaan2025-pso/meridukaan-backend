@@ -358,6 +358,44 @@ export class PosService {
     }));
   }
 
+  async getTodayStats(storeId: string, workerId: string) {
+    // Get today's date range (start of day to end of day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Query invoices for today
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        storeId,
+        workerId,
+        createdAt: {
+          gte: today,
+          lt: tomorrow,
+        },
+        status: 'COMPLETED',
+      },
+      select: {
+        totalAmount: true,
+        totalItems: true,
+      },
+    });
+
+    // Calculate stats
+    const salesCount = invoices.length;
+    const salesAmount = invoices.reduce(
+      (sum, inv) => sum.add(inv.totalAmount),
+      new Decimal(0),
+    );
+
+    return {
+      salesCount,
+      salesAmount: salesAmount.toNumber(),
+      date: today.toISOString().split('T')[0], // YYYY-MM-DD format
+    };
+  }
+
   async getInvoice(id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },

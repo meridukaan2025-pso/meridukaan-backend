@@ -272,6 +272,31 @@ export class PosController {
     return this.posService.deleteInvoice(id);
   }
 
+  @Get('stats/today')
+  @Roles(UserRole.SALES, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get today\'s sales statistics',
+    description: 'Get real-time sales statistics for today. Shows sales count and total amount for the current user\'s store and worker.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Today\'s sales statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        salesCount: { type: 'number', example: 15, description: 'Number of invoices created today' },
+        salesAmount: { type: 'number', example: 5250.75, description: 'Total sales amount for today' },
+        date: { type: 'string', example: '2026-01-19', description: 'Date in YYYY-MM-DD format' },
+      },
+    },
+  })
+  async getTodayStats(@CurrentUser() user: any) {
+    if (!user.storeId) {
+      throw new BadRequestException('User must be assigned to a store');
+    }
+    return this.posService.getTodayStats(user.storeId, user.id);
+  }
+
   @Get('invoices/:id/pdf')
   @Roles(UserRole.SALES, UserRole.ADMIN, UserRole.INVENTORY)
   @ApiOperation({ summary: 'Get invoice PDF', description: 'Download invoice PDF file. If the PDF was not generated at invoice creation, it is generated on demand.' })
