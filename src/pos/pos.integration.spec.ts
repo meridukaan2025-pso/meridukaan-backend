@@ -75,6 +75,7 @@ describe('POS Invoice Creation (e2e)', () => {
       data: {
         sku: 'TEST-SKU-001',
         name: 'Test Product',
+        storeId: store.id,
         categoryId: category.id,
         brandId: brand.id,
         manufacturerId: manufacturer.id,

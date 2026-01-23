@@ -23,7 +23,7 @@ export class ProductsController {
   @Roles(UserRole.ADMIN, UserRole.INVENTORY, UserRole.PURCHASE)
   @ApiOperation({
     summary: 'Create product',
-    description: 'Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. \n\n**Note:** This endpoint requires IDs (UUIDs) for category, brand, manufacturer, and store. To get these IDs:\n- Use `GET /admin/filters` to get all categories, brands, manufacturers, and stores with their IDs\n- Or use `POST /products/admin-create` if you want to create products using names instead of IDs\n\nAll IDs must exist in the database. storeId is required - product belongs to a specific store.',
+    description: 'Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. \n\n**Note:** This endpoint requires IDs (UUIDs) for category, brand, manufacturer, and store. To get these IDs:\n- `GET /admin/categories` - Get all categories with IDs\n- `GET /admin/brands` - Get all brands with IDs\n- `GET /admin/manufacturers` - Get all manufacturers with IDs\n- `GET /stores` - Get all stores with IDs (public endpoint)\n- `GET /admin/filters` - Get all of the above in one call\n\n**Alternative:** Use `POST /products/admin-create` if you want to create products using names instead of IDs (recommended).\n\nAll IDs must exist in the database. storeId is required - product belongs to a specific store.',
   })
   @ApiResponse({
     status: 201,

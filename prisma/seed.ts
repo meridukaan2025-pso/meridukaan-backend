@@ -132,12 +132,13 @@ async function main() {
 
   console.log(`✅ Created ${categories.length} categories`);
 
-  // Create products
+  // Create products (assign to first store)
   const products = await Promise.all([
     prisma.product.create({
       data: {
         sku: 'COKE-330ML',
         name: 'Coca-Cola 330ml',
+        storeId: stores[0].id,
         categoryId: softDrinksCategory.id,
         brandId: brands[0].id,
         manufacturerId: manufacturers[0].id,
@@ -149,6 +150,7 @@ async function main() {
       data: {
         sku: 'SPRITE-330ML',
         name: 'Sprite 330ml',
+        storeId: stores[0].id,
         categoryId: softDrinksCategory.id,
         brandId: brands[1].id,
         manufacturerId: manufacturers[0].id,
@@ -160,6 +162,7 @@ async function main() {
       data: {
         sku: 'PEPSI-330ML',
         name: 'Pepsi 330ml',
+        storeId: stores[0].id,
         categoryId: softDrinksCategory.id,
         brandId: brands[2].id,
         manufacturerId: manufacturers[1].id,
@@ -171,6 +174,7 @@ async function main() {
       data: {
         sku: '7UP-330ML',
         name: '7UP 330ml',
+        storeId: stores[0].id,
         categoryId: softDrinksCategory.id,
         brandId: brands[3].id,
         manufacturerId: manufacturers[1].id,
@@ -182,6 +186,7 @@ async function main() {
       data: {
         sku: 'FROOTI-200ML',
         name: 'Frooti 200ml',
+        storeId: stores[0].id,
         categoryId: juicesCategory.id,
         brandId: brands[4].id,
         manufacturerId: manufacturers[2].id,
@@ -193,6 +198,7 @@ async function main() {
       data: {
         sku: 'REAL-200ML',
         name: 'Real Juice 200ml',
+        storeId: stores[0].id,
         categoryId: juicesCategory.id,
         brandId: brands[5].id,
         manufacturerId: manufacturers[3].id,
@@ -204,6 +210,7 @@ async function main() {
       data: {
         sku: 'LIPTON-250ML',
         name: 'Lipton Ice Tea 250ml',
+        storeId: stores[0].id,
         categoryId: teaCategory.id,
         brandId: brands[6].id,
         manufacturerId: manufacturers[4].id,

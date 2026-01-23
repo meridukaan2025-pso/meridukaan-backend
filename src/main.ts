@@ -68,6 +68,9 @@ async function bootstrap() {
         },
         admin: {
           filters: `http://${req.headers.host}/admin/filters`,
+          categories: `http://${req.headers.host}/admin/categories`,
+          brands: `http://${req.headers.host}/admin/brands`,
+          manufacturers: `http://${req.headers.host}/admin/manufacturers`,
           analytics: `http://${req.headers.host}/admin/analytics/summary`,
         },
       },

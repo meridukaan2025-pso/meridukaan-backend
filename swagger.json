@@ -938,14 +938,215 @@
       "get": {
         "operationId": "AdminController_getFilters",
         "summary": "Get filter options",
-        "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, etc.)",
+        "description": "Get all available filter options (stores, regions, cities, categories, brands, manufacturers) with their IDs. Use this to get IDs needed for product creation.",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Filter options"
+            "description": "Filter options with IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "brands": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "manufacturers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthorized - Admin role required"
+            "description": "Unauthorized"
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/categories": {
+      "get": {
+        "operationId": "AdminController_getCategories",
+        "summary": "Get all categories",
+        "description": "Get list of all categories with their IDs. Use these IDs when creating products via POST /products endpoint.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Beverages"
+                      },
+                      "parentId": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/brands": {
+      "get": {
+        "operationId": "AdminController_getBrands",
+        "summary": "Get all brands",
+        "description": "Get list of all brands with their IDs and manufacturer info. Use these IDs when creating products via POST /products endpoint.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of brands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Coca-Cola"
+                      },
+                      "manufacturerId": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "manufacturerName": {
+                        "type": "string",
+                        "example": "The Coca-Cola Company"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/admin/manufacturers": {
+      "get": {
+        "operationId": "AdminController_getManufacturers",
+        "summary": "Get all manufacturers",
+        "description": "Get list of all manufacturers with their IDs. Use these IDs when creating products via POST /products endpoint.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of manufacturers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "The Coca-Cola Company"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1066,7 +1267,7 @@
     },
     "/admin/analytics/brands": {
       "get": {
-        "operationId": "AdminController_getBrands",
+        "operationId": "AdminController_getBrandsAnalytics",
         "parameters": [],
         "responses": {
           "200": {
@@ -1568,7 +1769,7 @@
       "post": {
         "operationId": "ProductsController_create",
         "summary": "Create product",
-        "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. \n\n**Note:** This endpoint requires IDs (UUIDs) for category, brand, manufacturer, and store. To get these IDs:\n- Use `GET /admin/filters` to get all categories, brands, manufacturers, and stores with their IDs\n- Or use `POST /products/admin-create` if you want to create products using names instead of IDs\n\nAll IDs must exist in the database. storeId is required - product belongs to a specific store.",
+        "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. \n\n**Note:** This endpoint requires IDs (UUIDs) for category, brand, manufacturer, and store. To get these IDs:\n- `GET /admin/categories` - Get all categories with IDs\n- `GET /admin/brands` - Get all brands with IDs\n- `GET /admin/manufacturers` - Get all manufacturers with IDs\n- `GET /stores` - Get all stores with IDs (public endpoint)\n- `GET /admin/filters` - Get all of the above in one call\n\n**Alternative:** Use `POST /products/admin-create` if you want to create products using names instead of IDs (recommended).\n\nAll IDs must exist in the database. storeId is required - product belongs to a specific store.",
         "parameters": [],
         "requestBody": {
           "required": true,

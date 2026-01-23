@@ -19,6 +19,19 @@ const BARCODE_PRODUCTS = [
 async function main() {
   console.log('📦 Adding barcode products from docs/images...');
 
+  // Get or create a store
+  let store = await prisma.store.findFirst();
+  if (!store) {
+    store = await prisma.store.create({
+      data: {
+        name: 'Default Store',
+        region: 'Default',
+        city: 'Default',
+      },
+    });
+    console.log('✅ Created store: Default Store');
+  }
+
   let category = await prisma.category.findFirst();
   if (!category) {
     category = await prisma.category.create({ data: { name: 'Barcode Products' } });
@@ -45,7 +58,9 @@ async function main() {
   let skipped = 0;
 
   for (const { sku, name } of BARCODE_PRODUCTS) {
-    const exists = await prisma.product.findUnique({ where: { sku } });
+    const exists = await prisma.product.findFirst({ 
+      where: { sku, storeId: store.id } 
+    });
     if (exists) {
       console.log(`⏭️  Skipped (exists): ${sku}`);
       skipped++;
@@ -55,6 +70,7 @@ async function main() {
       data: {
         sku,
         name,
+        storeId: store.id,
         categoryId: category.id,
         brandId: brand.id,
         manufacturerId: manufacturer.id,

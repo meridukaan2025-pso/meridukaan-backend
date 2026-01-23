@@ -62,5 +62,38 @@ export class AdminService {
       })),
     };
   }
+
+  async getCategories() {
+    const categories = await this.prisma.category.findMany({
+      select: { id: true, name: true, parentId: true },
+      orderBy: { name: 'asc' },
+    });
+    return categories;
+  }
+
+  async getBrands() {
+    const brands = await this.prisma.brand.findMany({
+      include: {
+        manufacturer: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return brands.map((b) => ({
+      id: b.id,
+      name: b.name,
+      manufacturerId: b.manufacturerId,
+      manufacturerName: b.manufacturer.name,
+    }));
+  }
+
+  async getManufacturers() {
+    const manufacturers = await this.prisma.manufacturer.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    return manufacturers;
+  }
 }
 

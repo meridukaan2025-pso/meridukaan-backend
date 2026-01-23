@@ -99,6 +99,7 @@ async function main() {
         data: {
           sku: 'COKE-500ML',
           name: 'Coca-Cola 500ml',
+          storeId: store.id,
           categoryId: category.id,
           brandId: brand.id,
           manufacturerId: manufacturer.id,
@@ -110,6 +111,7 @@ async function main() {
         data: {
           sku: 'COKE-1.5L',
           name: 'Coca-Cola 1.5L',
+          storeId: store.id,
           categoryId: category.id,
           brandId: brand.id,
           manufacturerId: manufacturer.id,
@@ -121,6 +123,7 @@ async function main() {
         data: {
           sku: 'SPRITE-500ML',
           name: 'Sprite 500ml',
+          storeId: store.id,
           categoryId: category.id,
           brandId: brand.id,
           manufacturerId: manufacturer.id,

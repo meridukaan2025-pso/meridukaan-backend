@@ -83,3 +83,7 @@ test-all-apis.js
 
 # Markdown documentation folder
 markdown/
+
+# Documentation files (not to be committed, except README.md)
+*.md
+!README.md
