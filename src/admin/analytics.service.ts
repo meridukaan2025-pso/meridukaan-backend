@@ -172,7 +172,7 @@ export class AnalyticsService {
     let countWithSize = 0;
 
     for (const product of productsWithSize) {
-      const size = product.unitSizeValue?.toNumber?.() ?? Number(product.unitSizeValue) || 0;
+      const size = (product.unitSizeValue?.toNumber?.() ?? Number(product.unitSizeValue)) || 0;
       const unit = product.unitSizeUnit;
       if (size > 0 && (unit === 'ML' || unit === 'L')) {
         const sizeInMl = unit === 'L' ? size * 1000 : size;

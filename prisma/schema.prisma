@@ -63,6 +63,7 @@ model Store {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   users         User[]
+  products      Product[]
   inventory     Inventory[]
   invoices      Invoice[]
   movements     InventoryMovement[]
@@ -112,8 +113,9 @@ model Category {
 
 model Product {
   id             String    @id @default(uuid())
-  sku            String    @unique
+  sku            String
   name           String
+  storeId        String    @map("store_id")
   categoryId     String    @map("category_id")
   brandId        String    @map("brand_id")
   manufacturerId String    @map("manufacturer_id")
@@ -126,13 +128,15 @@ model Product {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  category     Category            @relation(fields: [categoryId], references: [id])
-  brand        Brand               @relation(fields: [brandId], references: [id])
-  manufacturer Manufacturer        @relation(fields: [manufacturerId], references: [id])
+  store        Store            @relation(fields: [storeId], references: [id])
+  category     Category         @relation(fields: [categoryId], references: [id])
+  brand        Brand            @relation(fields: [brandId], references: [id])
+  manufacturer Manufacturer     @relation(fields: [manufacturerId], references: [id])
   inventory    Inventory[]
   invoiceItems InvoiceItem[]
   movements    InventoryMovement[]
 
+  @@unique([sku, storeId])
   @@map("products")
 }
 

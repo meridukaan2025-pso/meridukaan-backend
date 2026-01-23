@@ -18,9 +18,12 @@ export class PosService {
   ) {}
 
   async scanProduct(storeId: string, qrValue: string) {
-    // QR value should be the SKU
-    const product = await this.prisma.product.findUnique({
-      where: { sku: qrValue },
+    // QR value should be the SKU - find product in the specific store
+    const product = await this.prisma.product.findFirst({
+      where: { 
+        sku: qrValue,
+        storeId: storeId,
+      },
       include: {
         category: true,
         brand: true,
@@ -30,7 +33,7 @@ export class PosService {
 
     if (!product) {
       throw new NotFoundException({
-        message: `Product with SKU ${qrValue} not found`,
+        message: `Product with SKU ${qrValue} not found in this store`,
         sku: qrValue,
         suggestion: 'Use POST /products/quick-create to add this product manually',
         endpoint: '/products/quick-create',

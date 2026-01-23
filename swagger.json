@@ -739,6 +739,51 @@
         ]
       }
     },
+    "/pos/stats/today": {
+      "get": {
+        "operationId": "PosController_getTodayStats",
+        "summary": "Get today's sales statistics",
+        "description": "Get real-time sales statistics for today. Shows sales count and total amount for the current user's store and worker.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Today's sales statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "salesCount": {
+                      "type": "number",
+                      "example": 15,
+                      "description": "Number of invoices created today"
+                    },
+                    "salesAmount": {
+                      "type": "number",
+                      "example": 5250.75,
+                      "description": "Total sales amount for today"
+                    },
+                    "date": {
+                      "type": "string",
+                      "example": "2026-01-19",
+                      "description": "Date in YYYY-MM-DD format"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/pos/invoices/{id}/pdf": {
       "get": {
         "operationId": "PosController_getInvoicePdf",
@@ -767,6 +812,116 @@
           },
           "503": {
             "description": "PDF generation failed (e.g. Chromium unavailable). Try again later."
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/inventory": {
+      "get": {
+        "operationId": "PosController_getInventory",
+        "summary": "Get inventory by store",
+        "description": "Get inventory data for a specific store. For SALES users, storeId is automatically taken from assigned store. For ADMIN users, storeId can be specified as query parameter.",
+        "parameters": [
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Store ID (optional for ADMIN, auto-set for SALES)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inventory data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "storeId": {
+                        "type": "string"
+                      },
+                      "productId": {
+                        "type": "string"
+                      },
+                      "qtyOnHand": {
+                        "type": "number",
+                        "example": 100
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "product": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "sku": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "unitPrice": {
+                            "type": "number"
+                          },
+                          "category": {
+                            "type": "object"
+                          },
+                          "brand": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/pos/purchases": {
+      "get": {
+        "operationId": "PosController_getPurchases",
+        "summary": "Get purchase orders",
+        "description": "Get purchase orders (inventory movements of type IN) for a specific store. For ADMIN users, storeId can be specified as query parameter.",
+        "parameters": [
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Store ID (optional for ADMIN)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase orders retrieved successfully"
           }
         },
         "tags": [
@@ -1413,7 +1568,7 @@
       "post": {
         "operationId": "ProductsController_create",
         "summary": "Create product",
-        "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. All category, brand, and manufacturer IDs must exist.",
+        "description": "Create a new product with full details. Requires ADMIN, INVENTORY, or PURCHASE role. \n\n**Note:** This endpoint requires IDs (UUIDs) for category, brand, manufacturer, and store. To get these IDs:\n- Use `GET /admin/filters` to get all categories, brands, manufacturers, and stores with their IDs\n- Or use `POST /products/admin-create` if you want to create products using names instead of IDs\n\nAll IDs must exist in the database. storeId is required - product belongs to a specific store.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1445,6 +1600,10 @@
                       "type": "string",
                       "example": "Product Name"
                     },
+                    "storeId": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c"
+                    },
                     "unitPrice": {
                       "type": "number",
                       "example": 50
@@ -1452,6 +1611,24 @@
                     "unitSizeMl": {
                       "type": "number",
                       "example": 500,
+                      "nullable": true,
+                      "description": "DEPRECATED: Use unitSizeValue + unitSizeUnit"
+                    },
+                    "unitSizeValue": {
+                      "type": "number",
+                      "example": 500,
+                      "nullable": true
+                    },
+                    "unitSizeUnit": {
+                      "type": "string",
+                      "example": "ML",
+                      "enum": [
+                        "ML",
+                        "L",
+                        "G",
+                        "KG",
+                        "PCS"
+                      ],
                       "nullable": true
                     },
                     "category": {
@@ -1504,13 +1681,13 @@
             }
           },
           "400": {
-            "description": "Bad request - Invalid input"
+            "description": "Bad request - Invalid input (e.g., missing storeId, invalid IDs)"
           },
           "404": {
-            "description": "Category, Brand, or Manufacturer not found"
+            "description": "Category, Brand, Manufacturer, or Store not found"
           },
           "409": {
-            "description": "Product with this SKU already exists"
+            "description": "Product with this SKU already exists in this store"
           }
         },
         "tags": [
@@ -1525,8 +1702,18 @@
       "get": {
         "operationId": "ProductsController_findAll",
         "summary": "Get all products",
-        "description": "Retrieve a list of all products with their category, brand, and manufacturer details. Requires ADMIN, INVENTORY, PURCHASE, or SALES role.",
-        "parameters": [],
+        "description": "Retrieve a list of products. SALES users see only their store's products. ADMIN/INVENTORY/PURCHASE can filter by storeId query parameter.",
+        "parameters": [
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Store ID (optional for ADMIN/INVENTORY/PURCHASE, auto-set for SALES)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of products retrieved successfully",
@@ -1587,8 +1774,8 @@
     "/products/admin-create": {
       "post": {
         "operationId": "ProductsController_createFromAdmin",
-        "summary": "Create product (admin)",
-        "description": "Create product with optional new category/brand/manufacturer by name, and optional initial stock per store.",
+        "summary": "Create product (admin) - Recommended",
+        "description": "Create product with flexible options. **This is the recommended endpoint** because:\n\n- You can use **names** instead of IDs for category, brand, and manufacturer (they will be created if they don't exist)\n- You can use either `categoryId` OR `categoryName` (same for brand/manufacturer)\n- You can optionally add initial stock\n- **storeId is required** - product must belong to a store\n\n**Example:** Use `categoryName: \"Beverages\"` instead of `categoryId: \"uuid-here\"`",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1622,7 +1809,7 @@
       "post": {
         "operationId": "ProductsController_quickCreate",
         "summary": "Quick create product (POS)",
-        "description": "Quickly create a product when barcode doesn't match. Automatically creates category, brand, and manufacturer if they don't exist. Requires SALES or ADMIN role. Use this when scanning an unknown barcode - SKU will be pre-filled from scan error.",
+        "description": "Quickly create a product when barcode doesn't match. Automatically creates category, brand, and manufacturer if they don't exist. Requires SALES or ADMIN role. storeId is automatically set from user's assigned store. Use this when scanning an unknown barcode - SKU will be pre-filled from scan error.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1655,6 +1842,11 @@
                       "type": "string",
                       "example": "New Product Name"
                     },
+                    "storeId": {
+                      "type": "string",
+                      "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+                      "description": "Auto-assigned from user's store"
+                    },
                     "unitPrice": {
                       "type": "number",
                       "example": 50
@@ -1662,6 +1854,24 @@
                     "unitSizeMl": {
                       "type": "number",
                       "example": 500,
+                      "nullable": true,
+                      "description": "DEPRECATED: Use unitSizeValue + unitSizeUnit"
+                    },
+                    "unitSizeValue": {
+                      "type": "number",
+                      "example": 500,
+                      "nullable": true
+                    },
+                    "unitSizeUnit": {
+                      "type": "string",
+                      "example": "ML",
+                      "enum": [
+                        "ML",
+                        "L",
+                        "G",
+                        "KG",
+                        "PCS"
+                      ],
                       "nullable": true
                     },
                     "category": {
@@ -1738,7 +1948,7 @@
       "get": {
         "operationId": "ProductsController_findBySku",
         "summary": "Get product by SKU",
-        "description": "Retrieve a product by its SKU (barcode). Accessible by all authenticated users. Use this to verify if a product exists before scanning.",
+        "description": "Retrieve a product by its SKU (barcode). SALES users see only products from their store. ADMIN/INVENTORY/PURCHASE can use storeId query parameter.",
         "parameters": [
           {
             "name": "sku",
@@ -1747,6 +1957,15 @@
             "description": "Product SKU (barcode)",
             "schema": {
               "example": "COKE-330ML",
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Store ID (optional for ADMIN/INVENTORY/PURCHASE, auto-set for SALES)",
+            "schema": {
               "type": "string"
             }
           }
@@ -1773,6 +1992,7 @@
       "get": {
         "operationId": "ProductsController_findById",
         "summary": "Get product by ID",
+        "description": "Retrieve a product by ID. SALES users can only access products from their store.",
         "parameters": [
           {
             "name": "id",
@@ -1804,6 +2024,7 @@
       "put": {
         "operationId": "ProductsController_update",
         "summary": "Update product",
+        "description": "Update a product. INVENTORY/PURCHASE users can only update products from their assigned store.",
         "parameters": [
           {
             "name": "id",
@@ -1829,6 +2050,9 @@
           "200": {
             "description": "Product updated"
           },
+          "400": {
+            "description": "Product does not belong to your store"
+          },
           "404": {
             "description": "Product not found"
           }
@@ -1845,6 +2069,7 @@
       "delete": {
         "operationId": "ProductsController_remove",
         "summary": "Delete product",
+        "description": "Delete a product. INVENTORY users can only delete products from their assigned store.",
         "parameters": [
           {
             "name": "id",
@@ -1861,7 +2086,7 @@
             "description": "Product deleted"
           },
           "400": {
-            "description": "Cannot delete: product has been used in invoices"
+            "description": "Cannot delete: product has been used in invoices or does not belong to your store"
           },
           "404": {
             "description": "Product not found"
@@ -2308,17 +2533,22 @@
           "categoryId": {
             "type": "string",
             "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
-            "description": "Category ID"
+            "description": "Category ID (UUID) - Get from GET /admin/filters or GET /categories. Required - must exist in database."
           },
           "brandId": {
             "type": "string",
             "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
-            "description": "Brand ID"
+            "description": "Brand ID (UUID) - Get from GET /admin/filters or GET /brands. Required - must exist in database."
           },
           "manufacturerId": {
             "type": "string",
             "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
-            "description": "Manufacturer ID"
+            "description": "Manufacturer ID (UUID) - Get from GET /admin/filters or GET /manufacturers. Required - must exist in database."
+          },
+          "storeId": {
+            "type": "string",
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store ID (UUID) - Product belongs to this store. Get from GET /stores. Required - must exist in database."
           },
           "unitPrice": {
             "type": "number",
@@ -2329,7 +2559,24 @@
           "unitSizeMl": {
             "type": "number",
             "example": 500,
-            "description": "Unit size in milliliters (optional)"
+            "description": "DEPRECATED: Unit size in milliliters (optional). Use unitSizeValue + unitSizeUnit instead."
+          },
+          "unitSizeValue": {
+            "type": "number",
+            "example": 500,
+            "description": "Unit size value (e.g. 500)"
+          },
+          "unitSizeUnit": {
+            "type": "string",
+            "example": "ML",
+            "description": "Unit size unit (ML, L, G, KG, PCS)",
+            "enum": [
+              "ML",
+              "L",
+              "G",
+              "KG",
+              "PCS"
+            ]
           }
         },
         "required": [
@@ -2338,6 +2585,7 @@
           "categoryId",
           "brandId",
           "manufacturerId",
+          "storeId",
           "unitPrice"
         ]
       },
@@ -2355,30 +2603,33 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "Use existing category by ID"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Use existing category by ID (UUID). Either categoryId OR categoryName is required."
           },
           "categoryName": {
             "type": "string",
             "example": "Beverages",
-            "description": "Create or use existing category by name"
+            "description": "Create or use existing category by name. Either categoryId OR categoryName is required. Recommended: Use name instead of ID."
           },
           "brandId": {
             "type": "string",
-            "description": "Use existing brand by ID"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Use existing brand by ID (UUID). Either brandId OR brandName is required."
           },
           "brandName": {
             "type": "string",
-            "example": "New Brand",
-            "description": "Create or use existing brand by name (requires manufacturer)"
+            "example": "Coca-Cola",
+            "description": "Create or use existing brand by name. Either brandId OR brandName is required. If using brandName, you must also provide manufacturerId or manufacturerName. Recommended: Use name instead of ID."
           },
           "manufacturerId": {
             "type": "string",
-            "description": "Use existing manufacturer by ID (required when brandName is used)"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Use existing manufacturer by ID (UUID). Required when brandName is used. Either manufacturerId OR manufacturerName."
           },
           "manufacturerName": {
             "type": "string",
-            "example": "New Manufacturer",
-            "description": "Create or use existing manufacturer by name"
+            "example": "The Coca-Cola Company",
+            "description": "Create or use existing manufacturer by name. Required when brandName is used. Either manufacturerId OR manufacturerName. Recommended: Use name instead of ID."
           },
           "unitPrice": {
             "type": "number",
@@ -2389,20 +2640,39 @@
             "type": "number",
             "example": 500
           },
-          "stockQuantity": {
+          "unitSizeValue": {
             "type": "number",
-            "example": 10,
-            "description": "Initial stock; requires storeId if > 0"
+            "example": 500,
+            "description": "Unit size value (e.g. 500)"
+          },
+          "unitSizeUnit": {
+            "type": "string",
+            "example": "ML",
+            "description": "Unit size unit (ML, L, G, KG, PCS)",
+            "enum": [
+              "ML",
+              "L",
+              "G",
+              "KG",
+              "PCS"
+            ]
           },
           "storeId": {
             "type": "string",
-            "description": "Store to add initial stock to; required when stockQuantity > 0"
+            "example": "4158f662-9e15-42ef-9c4e-345b9465693c",
+            "description": "Store ID (UUID) - Product belongs to this store. Required. Get store IDs from GET /stores endpoint."
+          },
+          "stockQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Initial stock; optional"
           }
         },
         "required": [
           "sku",
           "name",
-          "unitPrice"
+          "unitPrice",
+          "storeId"
         ]
       },
       "QuickCreateProductDto": {
@@ -2442,7 +2712,24 @@
           "unitSizeMl": {
             "type": "number",
             "example": 500,
-            "description": "Unit size in milliliters (optional)"
+            "description": "DEPRECATED: Unit size in milliliters (optional). Use unitSizeValue + unitSizeUnit instead."
+          },
+          "unitSizeValue": {
+            "type": "number",
+            "example": 500,
+            "description": "Unit size value (e.g. 500)"
+          },
+          "unitSizeUnit": {
+            "type": "string",
+            "example": "ML",
+            "description": "Unit size unit (ML, L, G, KG, PCS)",
+            "enum": [
+              "ML",
+              "L",
+              "G",
+              "KG",
+              "PCS"
+            ]
           },
           "stockQuantity": {
             "type": "number",
@@ -2492,6 +2779,23 @@
           "unitSizeMl": {
             "type": "number",
             "example": 500
+          },
+          "unitSizeValue": {
+            "type": "number",
+            "example": 500,
+            "description": "Unit size value (e.g. 500)"
+          },
+          "unitSizeUnit": {
+            "type": "string",
+            "example": "ML",
+            "description": "Unit size unit (ML, L, G, KG, PCS)",
+            "enum": [
+              "ML",
+              "L",
+              "G",
+              "KG",
+              "PCS"
+            ]
           }
         }
       },

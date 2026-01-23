@@ -27,13 +27,19 @@ export class ProductsService {
   }
 
   async createFromAdmin(dto: CreateProductAdminDto) {
-    const existing = await this.prisma.product.findUnique({ where: { sku: dto.sku } });
-    if (existing) throw new ConflictException(`Product with SKU ${dto.sku} already exists`);
+    // Validate storeId is provided
+    if (!dto.storeId) throw new BadRequestException('storeId is required');
+    
+    // Check if product with same SKU already exists in this store
+    const existing = await this.prisma.product.findFirst({ 
+      where: { sku: dto.sku, storeId: dto.storeId } 
+    });
+    if (existing) throw new ConflictException(`Product with SKU ${dto.sku} already exists in this store`);
+    
     if (!dto.categoryId && !dto.categoryName) throw new BadRequestException('Provide categoryId or categoryName');
     if (!dto.brandId && !dto.brandName) throw new BadRequestException('Provide brandId or brandName');
     if (dto.brandName && !dto.manufacturerId && !dto.manufacturerName) throw new BadRequestException('Provide manufacturerId or manufacturerName when using brandName');
     const sq = dto.stockQuantity ?? 0;
-    if (sq > 0 && !dto.storeId) throw new BadRequestException('storeId is required when stockQuantity > 0');
 
     const product = await this.prisma.$transaction(async (tx) => {
       let category: { id: string };
@@ -74,6 +80,7 @@ export class ProductsService {
         data: {
           sku: dto.sku,
           name: dto.name,
+          storeId: dto.storeId,
           categoryId: category.id,
           brandId: brand.id,
           manufacturerId: brand.manufacturerId,
@@ -98,12 +105,21 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto) {
-    const existingProduct = await this.prisma.product.findUnique({
-      where: { sku: createProductDto.sku },
+    // Validate storeId is provided
+    if (!createProductDto.storeId) {
+      throw new BadRequestException('storeId is required');
+    }
+    
+    // Check if product with same SKU already exists in this store
+    const existingProduct = await this.prisma.product.findFirst({
+      where: { 
+        sku: createProductDto.sku,
+        storeId: createProductDto.storeId,
+      },
     });
 
     if (existingProduct) {
-      throw new ConflictException(`Product with SKU ${createProductDto.sku} already exists`);
+      throw new ConflictException(`Product with SKU ${createProductDto.sku} already exists in this store`);
     }
 
     // Validate category exists
@@ -138,6 +154,7 @@ export class ProductsService {
       data: {
         sku: createProductDto.sku,
         name: createProductDto.name,
+        storeId: createProductDto.storeId,
         categoryId: createProductDto.categoryId,
         brandId: createProductDto.brandId,
         manufacturerId: createProductDto.manufacturerId,
@@ -161,13 +178,16 @@ export class ProductsService {
   }
 
   async quickCreate(quickCreateDto: QuickCreateProductDto, storeId: string) {
-    // Check if SKU already exists
-    const existingProduct = await this.prisma.product.findUnique({
-      where: { sku: quickCreateDto.sku },
+    // Check if SKU already exists in this store
+    const existingProduct = await this.prisma.product.findFirst({
+      where: { 
+        sku: quickCreateDto.sku,
+        storeId: storeId,
+      },
     });
 
     if (existingProduct) {
-      throw new ConflictException(`Product with SKU ${quickCreateDto.sku} already exists`);
+      throw new ConflictException(`Product with SKU ${quickCreateDto.sku} already exists in this store`);
     }
 
     // Use transaction to ensure data consistency
@@ -216,6 +236,7 @@ export class ProductsService {
         data: {
           sku: quickCreateDto.sku,
           name: quickCreateDto.name,
+          storeId: storeId,
           categoryId: category.id,
           brandId: brand.id,
           manufacturerId: manufacturer.id,
@@ -260,9 +281,14 @@ export class ProductsService {
     return this.transformProduct(product);
   }
 
-  async findBySku(sku: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { sku },
+  async findBySku(sku: string, storeId?: string) {
+    const where: any = { sku };
+    if (storeId) {
+      where.storeId = storeId;
+    }
+    
+    const product = await this.prisma.product.findFirst({
+      where,
       include: {
         category: true,
         brand: { include: { manufacturer: true } },
@@ -270,12 +296,20 @@ export class ProductsService {
         inventory: { select: { qtyOnHand: true } },
       },
     });
-    if (!product) throw new NotFoundException(`Product with SKU ${sku} not found`);
+    if (!product) {
+      throw new NotFoundException(`Product with SKU ${sku}${storeId ? ' in this store' : ''} not found`);
+    }
     return this.transformProduct(product);
   }
 
-  async findAll() {
+  async findAll(storeId?: string) {
+    const where: any = {};
+    if (storeId) {
+      where.storeId = storeId;
+    }
+    
     const products = await this.prisma.product.findMany({
+      where,
       include: {
         category: true,
         brand: { include: { manufacturer: true } },
@@ -287,9 +321,14 @@ export class ProductsService {
     return this.transformProducts(products);
   }
 
-  async findById(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
+  async findById(id: string, storeId?: string) {
+    const where: any = { id };
+    if (storeId) {
+      where.storeId = storeId;
+    }
+    
+    const product = await this.prisma.product.findFirst({
+      where,
       include: {
         category: true,
         brand: { include: { manufacturer: true } },
@@ -301,13 +340,24 @@ export class ProductsService {
     return this.transformProduct(product);
   }
 
-  async update(id: string, dto: UpdateProductDto) {
+  async update(id: string, dto: UpdateProductDto, storeId?: string) {
     const existing = await this.prisma.product.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Product not found');
 
+    // Verify product belongs to user's store (if storeId provided)
+    if (storeId && existing.storeId !== storeId) {
+      throw new BadRequestException('Product does not belong to your store');
+    }
+
     if (dto.sku && dto.sku !== existing.sku) {
-      const taken = await this.prisma.product.findUnique({ where: { sku: dto.sku } });
-      if (taken) throw new ConflictException(`Product with SKU ${dto.sku} already exists`);
+      const where: any = { sku: dto.sku };
+      if (storeId) {
+        where.storeId = storeId;
+      } else if (existing.storeId) {
+        where.storeId = existing.storeId;
+      }
+      const taken = await this.prisma.product.findFirst({ where });
+      if (taken) throw new ConflictException(`Product with SKU ${dto.sku} already exists in this store`);
     }
     if (dto.categoryId) {
       const c = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
@@ -372,12 +422,18 @@ export class ProductsService {
     return { storeId, productId, previousQty: current, added: quantity, newQty: after };
   }
 
-  async remove(id: string) {
+  async remove(id: string, storeId?: string) {
     const existing = await this.prisma.product.findUnique({
       where: { id },
       include: { _count: { select: { invoiceItems: true } } },
     });
     if (!existing) throw new NotFoundException('Product not found');
+    
+    // Verify product belongs to user's store (if storeId provided)
+    if (storeId && existing.storeId !== storeId) {
+      throw new BadRequestException('Product does not belong to your store');
+    }
+    
     if (existing._count.invoiceItems > 0) {
       throw new BadRequestException('Cannot delete product that has been used in invoices.');
     }
