@@ -1,5 +1,6 @@
-import { IsString, IsNumber, IsOptional, IsUUID, IsInt, Min, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsUUID, IsInt, Min, MinLength, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UnitSizeUnit } from '@prisma/client';
 
 export class CreateProductAdminDto {
   @ApiProperty({ example: 'NEW-SKU-001', description: 'Product SKU (barcode) - must be unique' })
@@ -55,6 +56,17 @@ export class CreateProductAdminDto {
   @IsNumber()
   @Min(0)
   unitSizeMl?: number;
+
+  @ApiPropertyOptional({ example: 500, description: 'Unit size value (e.g. 500)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitSizeValue?: number;
+
+  @ApiPropertyOptional({ example: 'ML', description: 'Unit size unit (ML, L, G, KG, PCS)', enum: UnitSizeUnit })
+  @IsOptional()
+  @IsEnum(UnitSizeUnit)
+  unitSizeUnit?: UnitSizeUnit;
 
   @ApiPropertyOptional({ example: 10, description: 'Initial stock; requires storeId if > 0' })
   @IsOptional()

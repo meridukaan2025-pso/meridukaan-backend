@@ -16,6 +16,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PosService } from './pos.service';
+import { InventoryService } from './inventory.service';
 import { ScanDto } from './dto/scan.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -28,7 +29,10 @@ import * as path from 'path';
 @ApiBearerAuth('JWT-auth')
 @Controller('pos')
 export class PosController {
-  constructor(private readonly posService: PosService) {}
+  constructor(
+    private readonly posService: PosService,
+    private readonly inventoryService: InventoryService,
+  ) {}
 
   @Post('scan')
   @HttpCode(HttpStatus.OK)
@@ -332,6 +336,100 @@ export class PosController {
         error: process.env.NODE_ENV === 'development' ? (e as Error).message : undefined,
       });
     }
+  }
+
+  @Get('inventory')
+  @Roles(UserRole.SALES, UserRole.ADMIN, UserRole.INVENTORY)
+  @ApiOperation({
+    summary: 'Get inventory by store',
+    description: 'Get inventory data for a specific store. For SALES users, storeId is automatically taken from assigned store. For ADMIN users, storeId can be specified as query parameter.',
+  })
+  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Store ID (optional for ADMIN, auto-set for SALES)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory data retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          storeId: { type: 'string' },
+          productId: { type: 'string' },
+          qtyOnHand: { type: 'number', example: 100 },
+          updatedAt: { type: 'string' },
+          product: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              sku: { type: 'string' },
+              name: { type: 'string' },
+              unitPrice: { type: 'number' },
+              category: { type: 'object' },
+              brand: { type: 'object' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getInventory(@Query('storeId') storeId: string, @CurrentUser() user: any) {
+    let targetStoreId: string;
+
+    if (user.role === UserRole.SALES) {
+      // SALES users must use their assigned store
+      if (!user.storeId) {
+        throw new BadRequestException('User is not assigned to a store. Please contact administrator.');
+      }
+      targetStoreId = user.storeId;
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.INVENTORY) {
+      // ADMIN and INVENTORY users can specify storeId or use their assigned store
+      if (storeId) {
+        targetStoreId = storeId;
+      } else if (user.storeId) {
+        targetStoreId = user.storeId;
+      } else {
+        throw new BadRequestException('Store ID is required. Please specify storeId query parameter.');
+      }
+    } else {
+      throw new BadRequestException('Unauthorized: Only SALES, ADMIN, and INVENTORY users can view inventory.');
+    }
+
+    return this.inventoryService.getInventoryByStore(targetStoreId);
+  }
+
+  @Get('purchases')
+  @Roles(UserRole.ADMIN, UserRole.PURCHASE, UserRole.INVENTORY)
+  @ApiOperation({
+    summary: 'Get purchase orders',
+    description: 'Get purchase orders (inventory movements of type IN) for a specific store. For ADMIN users, storeId can be specified as query parameter.',
+  })
+  @ApiQuery({ name: 'storeId', required: false, type: String, description: 'Store ID (optional for ADMIN)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Purchase orders retrieved successfully',
+  })
+  async getPurchases(@Query('storeId') storeId: string, @CurrentUser() user: any) {
+    let targetStoreId: string;
+
+    if (user.role === UserRole.PURCHASE || user.role === UserRole.INVENTORY) {
+      if (!user.storeId) {
+        throw new BadRequestException('User must be assigned to a store');
+      }
+      targetStoreId = user.storeId;
+    } else if (user.role === UserRole.ADMIN) {
+      if (storeId) {
+        targetStoreId = storeId;
+      } else if (user.storeId) {
+        targetStoreId = user.storeId;
+      } else {
+        // ADMIN without storeId can see all purchases
+        targetStoreId = undefined;
+      }
+    } else {
+      throw new BadRequestException('Unauthorized: Only ADMIN, PURCHASE, and INVENTORY users can view purchases.');
+    }
+
+    return this.inventoryService.getPurchases(targetStoreId);
   }
 }
 

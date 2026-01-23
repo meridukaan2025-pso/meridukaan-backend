@@ -157,10 +157,11 @@ export class AnalyticsService {
           totalStores
         : 0;
 
-    // Average price per litre
+    // Average price per litre (only for liquids with unit size in ML/L)
     const productsWithSize = await this.prisma.product.findMany({
       where: {
-        unitSizeMl: { not: null },
+        unitSizeValue: { not: null },
+        unitSizeUnit: { in: ['ML', 'L'] },
         ...(filters.categoryId && { categoryId: filters.categoryId }),
         ...(filters.manufacturerId && { manufacturerId: filters.manufacturerId }),
         ...(filters.brandId && { brandId: filters.brandId }),
@@ -171,10 +172,11 @@ export class AnalyticsService {
     let countWithSize = 0;
 
     for (const product of productsWithSize) {
-      if (product.unitSizeMl && product.unitSizeMl > 0) {
-        const pricePerLitre = new Decimal(product.unitPrice)
-          .div(product.unitSizeMl)
-          .mul(1000);
+      const size = product.unitSizeValue?.toNumber?.() ?? Number(product.unitSizeValue) || 0;
+      const unit = product.unitSizeUnit;
+      if (size > 0 && (unit === 'ML' || unit === 'L')) {
+        const sizeInMl = unit === 'L' ? size * 1000 : size;
+        const pricePerLitre = new Decimal(product.unitPrice).div(sizeInMl).mul(1000);
         totalPricePerLitre = totalPricePerLitre.add(pricePerLitre);
         countWithSize++;
       }

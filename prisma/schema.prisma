@@ -29,6 +29,15 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+// Generic unit for product pack size (not only ml)
+enum UnitSizeUnit {
+  ML
+  L
+  G
+  KG
+  PCS
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -109,7 +118,11 @@ model Product {
   brandId        String    @map("brand_id")
   manufacturerId String    @map("manufacturer_id")
   unitPrice      Decimal   @map("unit_price") @db.Decimal(10, 2)
-  unitSizeMl     Int?      @map("unit_size_ml")
+  // DEPRECATED: legacy field (ml only). Keep for backward compatibility/migration.
+  unitSizeMl     Int?          @map("unit_size_ml")
+  // New generic unit size fields (supports ml/g/kg/pcs/etc.)
+  unitSizeValue  Decimal?      @map("unit_size_value") @db.Decimal(10, 2)
+  unitSizeUnit   UnitSizeUnit? @map("unit_size_unit")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 

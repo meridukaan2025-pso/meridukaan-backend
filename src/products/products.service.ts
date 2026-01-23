@@ -79,6 +79,8 @@ export class ProductsService {
           manufacturerId: brand.manufacturerId,
           unitPrice: dto.unitPrice,
           unitSizeMl: dto.unitSizeMl,
+          unitSizeValue: dto.unitSizeValue ?? (dto.unitSizeMl != null ? dto.unitSizeMl : undefined),
+          unitSizeUnit: dto.unitSizeUnit ?? (dto.unitSizeMl != null ? 'ML' : undefined),
         },
         include: { category: true, brand: { include: { manufacturer: true } }, manufacturer: true },
       });
@@ -141,6 +143,8 @@ export class ProductsService {
         manufacturerId: createProductDto.manufacturerId,
         unitPrice: createProductDto.unitPrice,
         unitSizeMl: createProductDto.unitSizeMl,
+        unitSizeValue: createProductDto.unitSizeValue ?? (createProductDto.unitSizeMl != null ? createProductDto.unitSizeMl : undefined),
+        unitSizeUnit: createProductDto.unitSizeUnit ?? (createProductDto.unitSizeMl != null ? 'ML' : undefined),
       },
       include: {
         category: true,
@@ -217,6 +221,8 @@ export class ProductsService {
           manufacturerId: manufacturer.id,
           unitPrice: quickCreateDto.unitPrice,
           unitSizeMl: quickCreateDto.unitSizeMl,
+          unitSizeValue: quickCreateDto.unitSizeValue ?? (quickCreateDto.unitSizeMl != null ? quickCreateDto.unitSizeMl : undefined),
+          unitSizeUnit: quickCreateDto.unitSizeUnit ?? (quickCreateDto.unitSizeMl != null ? 'ML' : undefined),
         },
         include: {
           category: true,
@@ -323,7 +329,14 @@ export class ProductsService {
     if (dto.brandId != null) data.brandId = dto.brandId;
     if (dto.manufacturerId != null) data.manufacturerId = dto.manufacturerId;
     if (dto.unitPrice != null) data.unitPrice = dto.unitPrice;
-    if (dto.unitSizeMl != null) data.unitSizeMl = dto.unitSizeMl;
+    if (dto.unitSizeMl != null) {
+      data.unitSizeMl = dto.unitSizeMl;
+      // Backward compat: if only unitSizeMl is supplied, map to new generic fields
+      if (dto.unitSizeValue == null) data.unitSizeValue = dto.unitSizeMl;
+      if (dto.unitSizeUnit == null) data.unitSizeUnit = 'ML';
+    }
+    if (dto.unitSizeValue != null) data.unitSizeValue = dto.unitSizeValue;
+    if (dto.unitSizeUnit != null) data.unitSizeUnit = dto.unitSizeUnit;
 
     const product = await this.prisma.product.update({
       where: { id },

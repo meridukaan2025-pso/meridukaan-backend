@@ -1,5 +1,6 @@
-import { IsString, IsNumber, IsOptional, IsUUID, Min, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsUUID, Min, MinLength, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UnitSizeUnit } from '@prisma/client';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -50,10 +51,28 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({
     example: 500,
-    description: 'Unit size in milliliters (optional)',
+    description: 'DEPRECATED: Unit size in milliliters (optional). Use unitSizeValue + unitSizeUnit instead.',
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
   unitSizeMl?: number;
+
+  @ApiPropertyOptional({
+    example: 500,
+    description: 'Unit size value (e.g. 500)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitSizeValue?: number;
+
+  @ApiPropertyOptional({
+    example: 'ML',
+    description: 'Unit size unit (ML, L, G, KG, PCS)',
+    enum: UnitSizeUnit,
+  })
+  @IsOptional()
+  @IsEnum(UnitSizeUnit)
+  unitSizeUnit?: UnitSizeUnit;
 }
