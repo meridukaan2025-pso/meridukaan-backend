@@ -5,9 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
-  async getInventoryByStore(storeId: string) {
+  async getInventoryByStore(storeId?: string) {
     return this.prisma.inventory.findMany({
-      where: { storeId },
+      where: storeId ? { storeId } : undefined,
       include: {
         product: {
           include: {
@@ -15,7 +15,12 @@ export class InventoryService {
             category: true,
           },
         },
+        store: true,
       },
+      orderBy: [
+        { storeId: 'asc' },
+        { updatedAt: 'desc' },
+      ],
     });
   }
 

@@ -374,7 +374,7 @@ export class PosController {
     },
   })
   async getInventory(@Query('storeId') storeId: string, @CurrentUser() user: any) {
-    let targetStoreId: string;
+    let targetStoreId: string | undefined;
 
     if (user.role === UserRole.SALES) {
       // SALES users must use their assigned store
@@ -383,13 +383,14 @@ export class PosController {
       }
       targetStoreId = user.storeId;
     } else if (user.role === UserRole.ADMIN || user.role === UserRole.INVENTORY) {
-      // ADMIN and INVENTORY users can specify storeId or use their assigned store
+      // ADMIN and INVENTORY users can specify storeId, use their assigned store, or view all stores (if no storeId)
       if (storeId) {
         targetStoreId = storeId;
       } else if (user.storeId) {
         targetStoreId = user.storeId;
       } else {
-        throw new BadRequestException('Store ID is required. Please specify storeId query parameter.');
+        // ADMIN/INVENTORY users without assigned store can view all inventory
+        targetStoreId = undefined;
       }
     } else {
       throw new BadRequestException('Unauthorized: Only SALES, ADMIN, and INVENTORY users can view inventory.');
