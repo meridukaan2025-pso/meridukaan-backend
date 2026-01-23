@@ -717,7 +717,7 @@
       "post": {
         "tags": ["Authentication"],
         "summary": "User signup",
-        "description": "Create a new user and receive JWT. Store ID required for SALES.",
+        "description": "Create a new user account and receive JWT token. \n\n**New Flow (Recommended):** Provide storeName (and optionally storeRegion, storeCity) - API will create store automatically and assign storeId.\n\n**Alternative:** Provide storeId (existing store) - use GET /stores to get a store ID first.\n\nFor SALES role, either storeName or storeId is required.",
         "operationId": "signup",
         "requestBody": {
           "required": true,
@@ -727,19 +727,24 @@
                 "type": "object",
                 "required": ["email", "password", "role"],
                 "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "minLength": 6 },
-                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"] },
-                  "storeId": { "type": "string", "format": "uuid" }
+                  "email": { "type": "string", "format": "email", "example": "newuser@meridukaan.com" },
+                  "password": { "type": "string", "minLength": 6, "example": "securePassword123" },
+                  "role": { "type": "string", "enum": ["ADMIN", "SALES", "INVENTORY", "PURCHASE"], "example": "SALES" },
+                  "storeId": { "type": "string", "format": "uuid", "description": "Store ID (optional - use storeName instead to create new store during signup)", "example": "4158f662-9e15-42ef-9c4e-345b9465693c" },
+                  "storeName": { "type": "string", "description": "Store name (optional - if provided, store will be created and storeId will be assigned automatically)", "example": "My Store Name" },
+                  "storeRegion": { "type": "string", "description": "Store region (optional - recommended if storeName is provided)", "example": "Punjab" },
+                  "storeCity": { "type": "string", "description": "Store city (optional - recommended if storeName is provided)", "example": "Lahore" },
+                  "firstName": { "type": "string", "example": "John" },
+                  "lastName": { "type": "string", "example": "Doe" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "User created" },
-          "400": { "description": "Bad request" },
-          "409": { "description": "Email already exists" }
+          "201": { "description": "User created successfully" },
+          "400": { "description": "Bad request - Invalid input or store ID/name required for SALES role" },
+          "409": { "description": "Conflict - Email already exists" }
         }
       }
     },
@@ -769,7 +774,7 @@
       "get": {
         "tags": ["Stores"],
         "summary": "Get all stores",
-        "description": "Retrieve a list of all stores. Public endpoint - no authentication required. Use this to get store IDs for user signup.",
+        "description": "Retrieve a list of all stores. Public endpoint - no authentication required.",
         "operationId": "getAllStores",
         "responses": {
           "200": {
@@ -784,6 +789,55 @@
                 }
               }
             }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Stores"],
+        "summary": "Create a new store",
+        "description": "Create a new store and get store ID. Public endpoint - used during user signup. Pass store name in body, API will assign a store ID. Region and city are optional.",
+        "operationId": "createStore",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "My New Store",
+                    "description": "Store name"
+                  },
+                  "region": {
+                    "type": "string",
+                    "example": "Punjab",
+                    "description": "Store region (optional)"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Lahore",
+                    "description": "Store city (optional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Store created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Store"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid input"
           }
         }
       }
