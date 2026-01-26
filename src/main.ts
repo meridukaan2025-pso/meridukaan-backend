@@ -71,6 +71,7 @@ async function bootstrap() {
           categories: `http://${req.headers.host}/admin/categories`,
           brands: `http://${req.headers.host}/admin/brands`,
           manufacturers: `http://${req.headers.host}/admin/manufacturers`,
+          summary: `http://${req.headers.host}/admin/summary`,
           analytics: `http://${req.headers.host}/admin/analytics/summary`,
         },
       },

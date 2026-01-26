@@ -17,6 +17,188 @@ interface AnalyticsFilters {
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Get comprehensive dashboard summary (sales, purchases, inventory)
+   * Single endpoint for all totals - no need to fetch individual records
+   */
+  async getDashboardSummary(storeId?: string) {
+    const whereClause: any = {};
+    if (storeId) {
+      whereClause.storeId = storeId;
+    }
+
+    // Sales totals - aggregate from invoices
+    const salesAggregate = await this.prisma.invoice.aggregate({
+      where: {
+        ...whereClause,
+        status: 'COMPLETED',
+      },
+      _sum: {
+        totalAmount: true,
+        totalItems: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Today's sales
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todaySalesAggregate = await this.prisma.invoice.aggregate({
+      where: {
+        ...whereClause,
+        status: 'COMPLETED',
+        createdAt: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+      _sum: {
+        totalAmount: true,
+        totalItems: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Purchase totals - aggregate from inventory movements (type IN, refType PURCHASE)
+    const purchaseWhere: any = {
+      type: 'IN',
+      refType: 'PURCHASE',
+      ...(storeId && { storeId }),
+    };
+
+    const purchaseMovements = await this.prisma.inventoryMovement.findMany({
+      where: purchaseWhere,
+      include: {
+        product: {
+          select: {
+            unitPrice: true,
+          },
+        },
+      },
+    });
+
+    let totalPurchaseAmount = new Decimal(0);
+    let totalPurchaseItems = 0;
+    const purchaseRefIds = new Set<string>();
+
+    for (const movement of purchaseMovements) {
+      let unitPrice: number;
+      if (typeof movement.product.unitPrice === 'object' && movement.product.unitPrice !== null && 'toNumber' in movement.product.unitPrice) {
+        unitPrice = (movement.product.unitPrice as any).toNumber();
+      } else {
+        unitPrice = Number(movement.product.unitPrice) || 0;
+      }
+      totalPurchaseAmount = totalPurchaseAmount.add(new Decimal(unitPrice).mul(movement.qty));
+      totalPurchaseItems += movement.qty;
+      if (movement.refId) {
+        purchaseRefIds.add(movement.refId);
+      }
+    }
+
+    // Today's purchases
+    const todayPurchaseMovements = await this.prisma.inventoryMovement.findMany({
+      where: {
+        ...purchaseWhere,
+        createdAt: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+      include: {
+        product: {
+          select: {
+            unitPrice: true,
+          },
+        },
+      },
+    });
+
+    let todayPurchaseAmount = new Decimal(0);
+    let todayPurchaseItems = 0;
+    const todayPurchaseRefIds = new Set<string>();
+
+    for (const movement of todayPurchaseMovements) {
+      let unitPrice: number;
+      if (typeof movement.product.unitPrice === 'object' && movement.product.unitPrice !== null && 'toNumber' in movement.product.unitPrice) {
+        unitPrice = (movement.product.unitPrice as any).toNumber();
+      } else {
+        unitPrice = Number(movement.product.unitPrice) || 0;
+      }
+      todayPurchaseAmount = todayPurchaseAmount.add(new Decimal(unitPrice).mul(movement.qty));
+      todayPurchaseItems += movement.qty;
+      if (movement.refId) {
+        todayPurchaseRefIds.add(movement.refId);
+      }
+    }
+
+    // Inventory totals - aggregate from inventory table
+    const inventoryWhere: any = {};
+    if (storeId) {
+      inventoryWhere.storeId = storeId;
+    }
+
+    const inventoryItems = await this.prisma.inventory.findMany({
+      where: inventoryWhere,
+      include: {
+        product: {
+          select: {
+            unitPrice: true,
+          },
+        },
+      },
+    });
+
+    let totalInventoryValue = new Decimal(0);
+    let totalInventoryItems = 0;
+    let lowStockCount = 0;
+
+    for (const inv of inventoryItems) {
+      const unitPrice = typeof inv.product.unitPrice === 'object' && 'toNumber' in inv.product.unitPrice
+        ? (inv.product.unitPrice as any).toNumber()
+        : Number(inv.product.unitPrice) || 0;
+      const itemValue = new Decimal(unitPrice).mul(inv.qtyOnHand);
+      totalInventoryValue = totalInventoryValue.add(itemValue);
+      totalInventoryItems += inv.qtyOnHand;
+      
+      // Consider low stock if qtyOnHand < 10 (adjust threshold as needed)
+      if (inv.qtyOnHand < 10) {
+        lowStockCount++;
+      }
+    }
+
+    return {
+      sales: {
+        totalAmount: salesAggregate._sum.totalAmount?.toNumber() || 0,
+        totalCount: salesAggregate._count.id || 0,
+        totalItems: salesAggregate._sum.totalItems || 0,
+        todayAmount: todaySalesAggregate._sum.totalAmount?.toNumber() || 0,
+        todayCount: todaySalesAggregate._count.id || 0,
+        todayItems: todaySalesAggregate._sum.totalItems || 0,
+      },
+      purchases: {
+        totalAmount: totalPurchaseAmount.toNumber(),
+        totalCount: purchaseRefIds.size,
+        totalItems: totalPurchaseItems,
+        todayAmount: todayPurchaseAmount.toNumber(),
+        todayCount: todayPurchaseRefIds.size,
+        todayItems: todayPurchaseItems,
+      },
+      inventory: {
+        totalValue: totalInventoryValue.toNumber(),
+        totalItems: totalInventoryItems,
+        lowStockCount: lowStockCount,
+        uniqueProducts: inventoryItems.length,
+      },
+    };
+  }
+
   private buildWhereClause(filters: AnalyticsFilters) {
     const where: any = {};
 

@@ -3,7 +3,7 @@
     "name": "Meri Dukaan Backend API",
     "description": "Complete API collection for Meri Dukaan POS, Products, User Management, and Admin Analytics endpoints. Includes all endpoints with proper authentication, examples, and descriptions.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.6.0"
+    "version": "2.8.0"
   },
   "variable": [
     {
@@ -586,7 +586,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["products", "sku", "COKE-330ML"]
             },
-            "description": "Retrieve a product by its SKU (barcode). Accessible by all authenticated users. Use this to verify if a product exists before scanning."
+            "description": "Retrieve a product by its SKU (barcode). SALES users see only products from their store. ADMIN/INVENTORY/PURCHASE can use storeId query parameter. Requires SALES, ADMIN, INVENTORY, or PURCHASE role."
           },
           "event": [
             {
@@ -730,7 +730,7 @@
               "path": ["products", ":productId"],
               "variable": [{"key": "productId", "value": "{{productId}}"}]
             },
-            "description": "Get a product by UUID. Requires ADMIN, INVENTORY, PURCHASE, or SALES."
+            "description": "Get a product by UUID. SALES users can only access products from their store. Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
           }
         },
         {
@@ -751,7 +751,7 @@
               "path": ["products", ":productId"],
               "variable": [{"key": "productId", "value": "{{productId}}"}]
             },
-            "description": "Update product. All body fields optional. Requires ADMIN, INVENTORY, or PURCHASE."
+            "description": "Update product. All body fields optional. INVENTORY/PURCHASE users can only update products from their assigned store. Requires ADMIN, INVENTORY, or PURCHASE role."
           }
         },
         {
@@ -786,7 +786,7 @@
               "path": ["products", ":productId"],
               "variable": [{"key": "productId", "value": "{{productId}}"}]
             },
-            "description": "Delete a product. ADMIN only. Fails if product has been used in invoices."
+            "description": "Delete a product. INVENTORY users can only delete products from their assigned store. Fails if product has been used in invoices or does not belong to your store. Requires ADMIN or INVENTORY role."
           }
         }
       ]
@@ -1144,6 +1144,124 @@
             },
             "description": "Delete (void) an invoice and restore stock. ADMIN only."
           }
+        },
+        {
+          "name": "Get Today's Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pos/stats/today",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "stats", "today"]
+            },
+            "description": "Get real-time sales statistics for today. Shows sales count and total amount for the current user's store and worker. Requires SALES or ADMIN role. User must be assigned to a store."
+          }
+        },
+        {
+          "name": "Get Inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pos/inventory?storeId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "inventory"],
+              "query": [
+                {
+                  "key": "storeId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Store ID (optional for ADMIN, auto-set for SALES)"
+                }
+              ]
+            },
+            "description": "Get inventory data for a specific store. For SALES users, storeId is automatically taken from assigned store. For ADMIN/INVENTORY users, storeId can be specified as query parameter. Requires SALES, ADMIN, or INVENTORY role."
+          }
+        },
+        {
+          "name": "Get Purchases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pos/purchases?storeId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "purchases"],
+              "query": [
+                {
+                  "key": "storeId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Store ID (optional for ADMIN)"
+                }
+              ]
+            },
+            "description": "Get purchase orders (inventory movements of type IN) for a specific store. For ADMIN users, storeId can be specified as query parameter. For PURCHASE/INVENTORY users, storeId is automatically taken from assigned store. Requires ADMIN, PURCHASE, or INVENTORY role."
+          }
+        },
+        {
+          "name": "Sync Offline Invoices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoices\": [\n    {\n      \"localId\": \"local-uuid-123\",\n      \"items\": [\n        {\n          \"sku\": \"PROD-001\",\n          \"productName\": \"Coca Cola\",\n          \"categoryName\": \"Beverages\",\n          \"brandName\": \"Coca-Cola\",\n          \"manufacturerName\": \"The Coca-Cola Company\",\n          \"qty\": 5,\n          \"unitPrice\": 50.00\n        }\n      ],\n      \"clientInvoiceRef\": \"INV-2026-001\",\n      \"paymentMethod\": \"Cash\",\n      \"createdAt\": \"2026-01-24T10:00:00Z\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/pos/invoices/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["pos", "invoices", "sync"]
+            },
+            "description": "Sync offline invoices created when server was down. Resolves products from names (category, brand, manufacturer) and creates invoices. Products are created automatically if they don't exist. Requires SALES or ADMIN role. Items can use names instead of IDs - categoryName, brandName, manufacturerName are required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    console.log('Synced:', jsonData.synced);",
+                  "    console.log('Failed:', jsonData.failed);",
+                  "    if (jsonData.synced && jsonData.synced.length > 0) {",
+                  "        pm.collectionVariables.set('invoiceId', jsonData.synced[0].serverId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -1165,7 +1283,87 @@
               "host": ["{{baseUrl}}"],
               "path": ["admin", "filters"]
             },
-            "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, categories, manufacturers)."
+            "description": "Get all available filter options for admin dashboard (stores, regions, cities, brands, categories, manufacturers). Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
+          }
+        },
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "categories"]
+            },
+            "description": "Get list of all categories with their IDs. Use these IDs when creating products via POST /products endpoint. Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
+          }
+        },
+        {
+          "name": "Get Brands",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/brands",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "brands"]
+            },
+            "description": "Get list of all brands with their IDs and manufacturer info. Use these IDs when creating products via POST /products endpoint. Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
+          }
+        },
+        {
+          "name": "Get Manufacturers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/manufacturers",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "manufacturers"]
+            },
+            "description": "Get list of all manufacturers with their IDs. Use these IDs when creating products via POST /products endpoint. Requires ADMIN, INVENTORY, PURCHASE, or SALES role."
+          }
+        },
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/summary?storeId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "summary"],
+              "query": [
+                {
+                  "key": "storeId",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by store ID (optional)"
+                }
+              ]
+            },
+            "description": "Get comprehensive dashboard summary with all totals in one call: sales (total/today amount/count/items), purchases (total/today amount/count/items), inventory (value/items/low stock count). No need to fetch individual records. Requires ADMIN, SALES, INVENTORY, or PURCHASE role."
           }
         },
         {
