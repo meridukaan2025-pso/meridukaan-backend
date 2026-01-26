@@ -17,8 +17,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiHeader,
 import { Response } from 'express';
 import { PosService } from './pos.service';
 import { InventoryService } from './inventory.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ScanDto } from './dto/scan.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { SyncInvoicesDto } from './dto/sync-invoice.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -32,6 +34,7 @@ export class PosController {
   constructor(
     private readonly posService: PosService,
     private readonly inventoryService: InventoryService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('scan')
@@ -432,6 +435,83 @@ export class PosController {
     }
 
     return this.inventoryService.getPurchases(targetStoreId);
+  }
+
+  @Post('invoices/sync')
+  @Roles(UserRole.SALES, UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Sync offline invoices',
+    description: 'Sync offline invoices created when server was down. Resolves products from names (category, brand, manufacturer) and creates invoices. Products are created automatically if they don\'t exist.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sync results',
+    schema: {
+      type: 'object',
+      properties: {
+        synced: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              localId: { type: 'string', example: 'local-uuid-123' },
+              serverId: { type: 'string', example: 'server-uuid-456' },
+              status: { type: 'string', example: 'SYNCED' },
+            },
+          },
+        },
+        failed: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              localId: { type: 'string', example: 'local-uuid-124' },
+              status: { type: 'string', example: 'SYNC_FAILED' },
+              error: { type: 'string', example: 'Insufficient stock' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async syncInvoices(
+    @Body() syncDto: SyncInvoicesDto,
+    @CurrentUser() user: any,
+  ) {
+    // Determine storeId
+    let storeId: string;
+
+    if (user.role === UserRole.SALES) {
+      if (!user.storeId) {
+        throw new BadRequestException('User is not assigned to a store. Please contact administrator.');
+      }
+      storeId = user.storeId;
+    } else if (user.role === UserRole.ADMIN) {
+      if (user.storeId) {
+        storeId = user.storeId;
+      } else {
+        // For ADMIN users without storeId, use first available store (for testing/offline sync)
+        // In production, ADMIN users should have a storeId assigned
+        const firstStore = await this.prisma.store.findFirst({
+          orderBy: { createdAt: 'asc' },
+        });
+        if (!firstStore) {
+          throw new BadRequestException('No stores available. Please create a store first.');
+        }
+        storeId = firstStore.id;
+        console.log(`[Sync] ADMIN user without storeId, using first store: ${firstStore.name} (${storeId})`);
+      }
+    } else {
+      throw new BadRequestException('Unauthorized: Only SALES and ADMIN users can sync invoices.');
+    }
+
+    // Worker ID is always the current user
+    const workerId = user.id;
+
+    return this.posService.syncInvoices(syncDto, storeId, workerId);
   }
 }
 
