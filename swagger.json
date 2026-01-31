@@ -241,6 +241,206 @@
         ]
       }
     },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "summary": "Request password reset",
+        "description": "Send password reset link to email if user exists",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset link sent if user exists"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/admin/forgot-password": {
+      "post": {
+        "operationId": "AuthController_adminForgotPassword",
+        "summary": "Request password reset (admin)",
+        "description": "Send password reset link for admin users only",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset link sent if admin exists"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "summary": "Reset password",
+        "description": "Reset password using token sent to email",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated successfully"
+          },
+          "400": {
+            "description": "Invalid or expired token"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/firebase": {
+      "post": {
+        "operationId": "AuthController_firebaseLogin",
+        "summary": "Login with Firebase ID token",
+        "description": "Verify Firebase ID token and issue JWT",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirebaseLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/firebase/admin": {
+      "post": {
+        "operationId": "AuthController_firebaseAdminLogin",
+        "summary": "Login with Firebase ID token (admin)",
+        "description": "Verify Firebase ID token for admin users and issue JWT",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirebaseLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/google": {
+      "get": {
+        "operationId": "AuthController_googleAuth",
+        "summary": "Google OAuth (not configured)",
+        "description": "Configure OAuth credentials to enable Google login",
+        "parameters": [],
+        "responses": {
+          "501": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/apple": {
+      "get": {
+        "operationId": "AuthController_appleAuth",
+        "summary": "Apple OAuth (not configured)",
+        "description": "Configure OAuth credentials to enable Apple login",
+        "parameters": [],
+        "responses": {
+          "501": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
@@ -934,6 +1134,95 @@
         ]
       }
     },
+    "/pos/invoices/sync": {
+      "post": {
+        "operationId": "PosController_syncInvoices",
+        "summary": "Sync offline invoices",
+        "description": "Sync offline invoices created when server was down. Resolves products from names (category, brand, manufacturer) and creates invoices. Products are created automatically if they don't exist.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncInvoicesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sync results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "synced": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "localId": {
+                            "type": "string",
+                            "example": "local-uuid-123"
+                          },
+                          "serverId": {
+                            "type": "string",
+                            "example": "server-uuid-456"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "SYNCED"
+                          }
+                        }
+                      }
+                    },
+                    "failed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "localId": {
+                            "type": "string",
+                            "example": "local-uuid-124"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "SYNC_FAILED"
+                          },
+                          "error": {
+                            "type": "string",
+                            "example": "Insufficient stock"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "tags": [
+          "POS"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/admin/filters": {
       "get": {
         "operationId": "AdminController_getFilters",
@@ -1159,6 +1448,109 @@
         ]
       }
     },
+    "/admin/summary": {
+      "get": {
+        "operationId": "AdminController_getDashboardSummary",
+        "summary": "Get comprehensive dashboard summary",
+        "description": "Get all totals in one call: sales (total/today), purchases (total/today), inventory (value/items/low stock). No need to fetch individual records.",
+        "parameters": [
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by store ID (optional)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comprehensive summary with sales, purchases, and inventory totals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sales": {
+                      "type": "object",
+                      "properties": {
+                        "totalAmount": {
+                          "type": "number"
+                        },
+                        "totalCount": {
+                          "type": "number"
+                        },
+                        "totalItems": {
+                          "type": "number"
+                        },
+                        "todayAmount": {
+                          "type": "number"
+                        },
+                        "todayCount": {
+                          "type": "number"
+                        },
+                        "todayItems": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "purchases": {
+                      "type": "object",
+                      "properties": {
+                        "totalAmount": {
+                          "type": "number"
+                        },
+                        "totalCount": {
+                          "type": "number"
+                        },
+                        "totalItems": {
+                          "type": "number"
+                        },
+                        "todayAmount": {
+                          "type": "number"
+                        },
+                        "todayCount": {
+                          "type": "number"
+                        },
+                        "todayItems": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "inventory": {
+                      "type": "object",
+                      "properties": {
+                        "totalValue": {
+                          "type": "number"
+                        },
+                        "totalItems": {
+                          "type": "number"
+                        },
+                        "lowStockCount": {
+                          "type": "number"
+                        },
+                        "uniqueProducts": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/admin/analytics/summary": {
       "get": {
         "operationId": "AdminController_getSummary",
@@ -1211,10 +1603,61 @@
     "/admin/analytics/sales-trend": {
       "get": {
         "operationId": "AdminController_getSalesTrend",
-        "parameters": [],
+        "summary": "Get sales trend",
+        "description": "Get sales trends over time with optional filters (date range, store, region, city). All query parameters are optional.",
+        "parameters": [
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "description": "Filter by city",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "region",
+            "required": false,
+            "in": "query",
+            "description": "Filter by region",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by store ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Sales trend data"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [
@@ -1230,10 +1673,61 @@
     "/admin/analytics/brand-distribution": {
       "get": {
         "operationId": "AdminController_getBrandDistribution",
-        "parameters": [],
+        "summary": "Get brand distribution",
+        "description": "Get brand performance and distribution metrics with optional filters (date range, brand, category, manufacturer). All query parameters are optional.",
+        "parameters": [
+          {
+            "name": "manufacturerId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by manufacturer ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "brandId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by brand ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Brand distribution data"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [
@@ -1249,10 +1743,61 @@
     "/admin/analytics/market-share": {
       "get": {
         "operationId": "AdminController_getMarketShare",
-        "parameters": [],
+        "summary": "Get market share analysis",
+        "description": "Get market share analysis with optional filters (date range, region, city, brand). All query parameters are optional.",
+        "parameters": [
+          {
+            "name": "brandId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by brand ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "description": "Filter by city",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "region",
+            "required": false,
+            "in": "query",
+            "description": "Filter by region",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Market share data"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [
@@ -1268,10 +1813,52 @@
     "/admin/analytics/brands": {
       "get": {
         "operationId": "AdminController_getBrandsAnalytics",
-        "parameters": [],
+        "summary": "Get brand analytics",
+        "description": "Get brand analytics with optional filters (date range, category, manufacturer). All query parameters are optional.",
+        "parameters": [
+          {
+            "name": "manufacturerId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by manufacturer ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Brand analytics data"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [
@@ -1287,10 +1874,61 @@
     "/admin/analytics/top-skus": {
       "get": {
         "operationId": "AdminController_getTopSkus",
-        "parameters": [],
+        "summary": "Get top selling SKUs",
+        "description": "Get top selling products (SKUs) with optional filters (date range, store, region, city). All query parameters are optional.",
+        "parameters": [
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "description": "Filter by city",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "region",
+            "required": false,
+            "in": "query",
+            "description": "Filter by region",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by store ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Top SKUs data"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "tags": [
@@ -2512,6 +3150,59 @@
           "role"
         ]
       },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "example": "https://app.meridukaan.com/reset-password",
+            "description": "Frontend URL where the user will reset their password"
+          }
+        },
+        "required": [
+          "email",
+          "redirectUrl"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "token": {
+            "type": "string",
+            "example": "7f7a9f...reset-token..."
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewStrongPassword123"
+          }
+        },
+        "required": [
+          "email",
+          "token",
+          "newPassword"
+        ]
+      },
+      "FirebaseLoginDto": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...",
+            "description": "Firebase ID token from client"
+          }
+        },
+        "required": [
+          "idToken"
+        ]
+      },
       "StoreResponseDto": {
         "type": "object",
         "properties": {
@@ -2641,6 +3332,114 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "SyncInvoiceItemDto": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "example": "PROD-001",
+            "description": "Product SKU (optional if productName provided)"
+          },
+          "productName": {
+            "type": "string",
+            "example": "Coca Cola",
+            "description": "Product name (required if sku not provided)"
+          },
+          "categoryName": {
+            "type": "string",
+            "example": "Beverages",
+            "description": "Category name (will be created if doesn't exist)"
+          },
+          "brandName": {
+            "type": "string",
+            "example": "Coca-Cola",
+            "description": "Brand name (will be created if doesn't exist)"
+          },
+          "manufacturerName": {
+            "type": "string",
+            "example": "The Coca-Cola Company",
+            "description": "Manufacturer name (will be created if doesn't exist)"
+          },
+          "qty": {
+            "type": "number",
+            "example": 5,
+            "description": "Quantity",
+            "minimum": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 50,
+            "description": "Unit price",
+            "minimum": 0
+          },
+          "stockQuantity": {
+            "type": "number",
+            "example": 10,
+            "description": "Stock quantity to add when syncing (should be >= qty)",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "categoryName",
+          "brandName",
+          "manufacturerName",
+          "qty",
+          "unitPrice",
+          "stockQuantity"
+        ]
+      },
+      "SyncInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "localId": {
+            "type": "string",
+            "example": "local-uuid-123",
+            "description": "Local invoice ID from frontend (temporary ID)"
+          },
+          "items": {
+            "description": "Array of invoice items with product details",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncInvoiceItemDto"
+            }
+          },
+          "clientInvoiceRef": {
+            "type": "string",
+            "example": "INV-2026-001",
+            "description": "Client invoice reference"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "example": "Cash",
+            "description": "Payment method"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-24T10:00:00Z",
+            "description": "Original creation timestamp (ISO string)"
+          }
+        },
+        "required": [
+          "localId",
+          "items",
+          "createdAt"
+        ]
+      },
+      "SyncInvoicesDto": {
+        "type": "object",
+        "properties": {
+          "invoices": {
+            "description": "Array of offline invoices to sync",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncInvoiceDto"
+            }
+          }
+        },
+        "required": [
+          "invoices"
         ]
       },
       "CreateUserDto": {

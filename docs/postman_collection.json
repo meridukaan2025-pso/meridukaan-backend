@@ -236,6 +236,116 @@
           }
         },
         {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"redirectUrl\": \"http://localhost:3000/reset-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Request a password reset link (generic). If account exists, link is sent."
+          }
+        },
+        {
+          "name": "Forgot Password (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"redirectUrl\": \"http://localhost:3000/reset-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "forgot-password"]
+            },
+            "description": "Request a password reset link for admin users only."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"token\": \"<reset-token>\",\n  \"newPassword\": \"NewStrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset password using email + token."
+          }
+        },
+        {
+          "name": "Login with Firebase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase"]
+            },
+            "description": "Verify Firebase ID token and issue JWT."
+          }
+        },
+        {
+          "name": "Login with Firebase (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase", "admin"]
+            },
+            "description": "Verify Firebase ID token for admin users and issue JWT."
+          }
+        },
+        {
           "name": "Get Current User Profile",
           "request": {
             "method": "GET",
@@ -1231,7 +1341,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"invoices\": [\n    {\n      \"localId\": \"local-uuid-123\",\n      \"items\": [\n        {\n          \"sku\": \"PROD-001\",\n          \"productName\": \"Coca Cola\",\n          \"categoryName\": \"Beverages\",\n          \"brandName\": \"Coca-Cola\",\n          \"manufacturerName\": \"The Coca-Cola Company\",\n          \"qty\": 5,\n          \"unitPrice\": 50.00\n        }\n      ],\n      \"clientInvoiceRef\": \"INV-2026-001\",\n      \"paymentMethod\": \"Cash\",\n      \"createdAt\": \"2026-01-24T10:00:00Z\"\n    }\n  ]\n}",
+              "raw": "{\n  \"invoices\": [\n    {\n      \"localId\": \"local-uuid-123\",\n      \"items\": [\n        {\n          \"sku\": \"PROD-001\",\n          \"productName\": \"Coca Cola\",\n          \"categoryName\": \"Beverages\",\n          \"brandName\": \"Coca-Cola\",\n          \"manufacturerName\": \"The Coca-Cola Company\",\n          \"qty\": 5,\n          \"unitPrice\": 50.00,\n          \"stockQuantity\": 10\n        }\n      ],\n      \"clientInvoiceRef\": \"INV-2026-001\",\n      \"paymentMethod\": \"Cash\",\n      \"createdAt\": \"2026-01-24T10:00:00Z\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1243,7 +1353,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["pos", "invoices", "sync"]
             },
-            "description": "Sync offline invoices created when server was down. Resolves products from names (category, brand, manufacturer) and creates invoices. Products are created automatically if they don't exist. Requires SALES or ADMIN role. Items can use names instead of IDs - categoryName, brandName, manufacturerName are required."
+            "description": "Sync offline invoices created when server was down. Resolves products from names (category, brand, manufacturer) and creates invoices. Products are created automatically if they don't exist. Requires SALES or ADMIN role. Items can use names instead of IDs - categoryName, brandName, manufacturerName are required. IMPORTANT: Include stockQuantity field for each item (should be >= qty) - this sets the stock when syncing offline products."
           },
           "event": [
             {
