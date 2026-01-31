@@ -170,28 +170,6 @@ export class AuthController {
     return this.authService.loginWithFirebase(dto, UserRole.ADMIN);
   }
 
-  @Public()
-  @Get('google')
-  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
-  @ApiOperation({
-    summary: 'Google OAuth (not configured)',
-    description: 'Configure OAuth credentials to enable Google login',
-  })
-  async googleAuth() {
-    return { message: 'Google OAuth is not configured yet.' };
-  }
-
-  @Public()
-  @Get('apple')
-  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
-  @ApiOperation({
-    summary: 'Apple OAuth (not configured)',
-    description: 'Configure OAuth credentials to enable Apple login',
-  })
-  async appleAuth() {
-    return { message: 'Apple OAuth is not configured yet.' };
-  }
-
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 

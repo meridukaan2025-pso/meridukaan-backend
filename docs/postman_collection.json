@@ -311,6 +311,116 @@
             },
             "description": "Logout. JWT is stateless; client should remove token from storage. This endpoint is for consistency."
           }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"redirectUrl\": \"http://localhost:3000/reset-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Request a password reset link (generic). If account exists, link is sent."
+          }
+        },
+        {
+          "name": "Forgot Password (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"redirectUrl\": \"http://localhost:3000/reset-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "admin", "forgot-password"]
+            },
+            "description": "Request a password reset link for admin users only."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meridukaan.com\",\n  \"token\": \"<reset-token>\",\n  \"newPassword\": \"NewStrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset password using email + token."
+          }
+        },
+        {
+          "name": "Login with Firebase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase"]
+            },
+            "description": "Verify Firebase ID token and issue JWT."
+          }
+        },
+        {
+          "name": "Login with Firebase (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase/admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase", "admin"]
+            },
+            "description": "Verify Firebase ID token for admin users and issue JWT."
+          }
         }
       ]
     },
