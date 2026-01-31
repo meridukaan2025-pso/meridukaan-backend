@@ -1,12 +1,19 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { UserRole } from '@prisma/client';
 import { StoresService } from '../stores/stores.service';
+import { EmailService } from '../email/email.service';
+import { FirebaseService } from '../firebase/firebase.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +21,9 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private storesService: StoresService,
+    private configService: ConfigService,
+    private emailService: EmailService,
+    private firebaseService: FirebaseService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -227,6 +237,120 @@ export class AuthService {
         lastName: userWithoutPassword.lastName ?? null,
         role: userWithoutPassword.role,
         storeId: userWithoutPassword.storeId,
+      },
+    };
+  }
+
+  private hashResetToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private buildResetUrl(redirectUrl: string, token: string, email: string) {
+    const url = new URL(redirectUrl);
+    url.searchParams.set('token', token);
+    url.searchParams.set('email', email);
+    return url.toString();
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto, requiredRole?: UserRole) {
+    const normalizedEmail = dto.email.trim();
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    });
+
+    if (!user || (requiredRole && user.role !== requiredRole)) {
+      return { message: 'If the account exists, a reset link will be sent.' };
+    }
+
+    const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashResetToken(token);
+
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    const resetUrl = this.buildResetUrl(dto.redirectUrl, token, user.email);
+    await this.emailService.sendPasswordResetEmail(user.email, resetUrl);
+
+    return { message: 'If the account exists, a reset link will be sent.' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const normalizedEmail = dto.email.trim();
+    const tokenHash = this.hashResetToken(dto.token);
+
+    const resetToken = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        expiresAt: { gt: new Date() },
+        user: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.deleteMany({
+        where: { userId: resetToken.userId },
+      }),
+    ]);
+
+    return { message: 'Password updated successfully' };
+  }
+
+  async loginWithFirebase(dto: FirebaseLoginDto, requiredRole?: UserRole) {
+    const decoded = await this.firebaseService.verifyIdToken(dto.idToken);
+    const email = decoded.email?.trim();
+
+    if (!email) {
+      throw new BadRequestException('Firebase token missing email');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      include: { store: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (requiredRole && user.role !== requiredRole) {
+      throw new UnauthorizedException('Access denied for this role');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      storeId: user.storeId,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? null,
+        lastName: user.lastName ?? null,
+        role: user.role,
+        storeId: user.storeId,
       },
     };
   }

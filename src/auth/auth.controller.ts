@@ -4,8 +4,12 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -103,6 +107,89 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Conflict - User with this email already exists' })
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset',
+    description: 'Send password reset link to email if user exists',
+  })
+  @ApiResponse({ status: 200, description: 'Reset link sent if user exists' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Public()
+  @Post('admin/forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset (admin)',
+    description: 'Send password reset link for admin users only',
+  })
+  @ApiResponse({ status: 200, description: 'Reset link sent if admin exists' })
+  async adminForgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto, UserRole.ADMIN);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password',
+    description: 'Reset password using token sent to email',
+  })
+  @ApiResponse({ status: 200, description: 'Password updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @Public()
+  @Post('firebase')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login with Firebase ID token',
+    description: 'Verify Firebase ID token and issue JWT',
+  })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async firebaseLogin(@Body() dto: FirebaseLoginDto) {
+    return this.authService.loginWithFirebase(dto);
+  }
+
+  @Public()
+  @Post('firebase/admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login with Firebase ID token (admin)',
+    description: 'Verify Firebase ID token for admin users and issue JWT',
+  })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async firebaseAdminLogin(@Body() dto: FirebaseLoginDto) {
+    return this.authService.loginWithFirebase(dto, UserRole.ADMIN);
+  }
+
+  @Public()
+  @Get('google')
+  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
+  @ApiOperation({
+    summary: 'Google OAuth (not configured)',
+    description: 'Configure OAuth credentials to enable Google login',
+  })
+  async googleAuth() {
+    return { message: 'Google OAuth is not configured yet.' };
+  }
+
+  @Public()
+  @Get('apple')
+  @HttpCode(HttpStatus.NOT_IMPLEMENTED)
+  @ApiOperation({
+    summary: 'Apple OAuth (not configured)',
+    description: 'Configure OAuth credentials to enable Apple login',
+  })
+  async appleAuth() {
+    return { message: 'Apple OAuth is not configured yet.' };
   }
 
   @Post('logout')
