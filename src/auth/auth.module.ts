@@ -7,11 +7,15 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StoresModule } from '../stores/stores.module';
+import { EmailModule } from '../email/email.module';
+import { FirebaseModule } from '../firebase/firebase.module';
 
 @Module({
   imports: [
     PrismaModule,
     StoresModule,
+    EmailModule,
+    FirebaseModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
