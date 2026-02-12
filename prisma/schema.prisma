@@ -40,7 +40,8 @@ enum UnitSizeUnit {
 
 model User {
   id           String   @id @default(uuid())
-  email        String   @unique
+  email        String?  @unique
+  phoneNumber  String?  @unique @map("phone_number")
   passwordHash String   @map("password_hash")
   role         UserRole
   storeId      String?  @map("store_id")
@@ -222,4 +223,3 @@ model InvoiceItem {
   @@index([productId])
   @@map("invoice_items")
 }
-

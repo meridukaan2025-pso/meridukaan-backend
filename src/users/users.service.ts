@@ -9,19 +9,55 @@ import { UserRole } from '@prisma/client';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
-    // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
-    });
+  private normalizeEmail(email?: string) {
+    return email?.trim().toLowerCase();
+  }
 
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+  private normalizePhoneNumber(phoneNumber?: string) {
+    if (!phoneNumber) return undefined;
+
+    const normalized = phoneNumber.trim().replace(/[()\-\s]/g, '');
+    const isE164 = /^\+[1-9]\d{7,14}$/.test(normalized);
+
+    if (!isE164) {
+      throw new BadRequestException('Phone number must be in E.164 format (e.g. +923001234567)');
     }
 
-    // Validate storeId if role is SALES
+    return normalized;
+  }
+
+  async create(createUserDto: CreateUserDto) {
+    const normalizedEmail = this.normalizeEmail(createUserDto.email);
+    const normalizedPhoneNumber = this.normalizePhoneNumber(createUserDto.phoneNumber);
+
+    // Check email uniqueness if provided
+    if (normalizedEmail) {
+      const existingEmail = await this.prisma.user.findFirst({
+        where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      });
+
+      if (existingEmail) {
+        throw new ConflictException('User with this email already exists');
+      }
+    }
+
+    // Check phone number uniqueness if provided
+    if (normalizedPhoneNumber) {
+      const existingPhone = await this.prisma.user.findFirst({
+        where: { phoneNumber: normalizedPhoneNumber },
+      });
+
+      if (existingPhone) {
+        throw new ConflictException('User with this phone number already exists');
+      }
+    }
+
+    // Validate required fields for SALES role
     if (createUserDto.role === UserRole.SALES && !createUserDto.storeId) {
       throw new BadRequestException('Store ID is required for SALES role');
+    }
+    if (createUserDto.role === UserRole.SALES && !normalizedPhoneNumber) {
+      throw new BadRequestException('Phone number is required for SALES role');
     }
 
     // Validate store exists if storeId is provided
@@ -41,7 +77,8 @@ export class UsersService {
     // Create user
     const user = await this.prisma.user.create({
       data: {
-        email: createUserDto.email,
+        email: normalizedEmail,
+        phoneNumber: normalizedPhoneNumber,
         passwordHash,
         role: createUserDto.role,
         storeId: createUserDto.storeId,
@@ -51,6 +88,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        phoneNumber: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -76,6 +114,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        phoneNumber: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -105,6 +144,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        phoneNumber: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -139,10 +179,16 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
+    const normalizedEmail = this.normalizeEmail(updateUserDto.email);
+    const normalizedPhoneNumber = this.normalizePhoneNumber(updateUserDto.phoneNumber);
+
     // Check email uniqueness if email is being updated
-    if (updateUserDto.email && updateUserDto.email !== existingUser.email) {
-      const emailExists = await this.prisma.user.findUnique({
-        where: { email: updateUserDto.email },
+    if (normalizedEmail && normalizedEmail !== existingUser.email) {
+      const emailExists = await this.prisma.user.findFirst({
+        where: {
+          id: { not: id },
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+        },
       });
 
       if (emailExists) {
@@ -150,12 +196,30 @@ export class UsersService {
       }
     }
 
+    // Check phone number uniqueness if phone is being updated
+    if (normalizedPhoneNumber && normalizedPhoneNumber !== existingUser.phoneNumber) {
+      const phoneExists = await this.prisma.user.findFirst({
+        where: {
+          id: { not: id },
+          phoneNumber: normalizedPhoneNumber,
+        },
+      });
+
+      if (phoneExists) {
+        throw new ConflictException('User with this phone number already exists');
+      }
+    }
+
     // Validate storeId if role is SALES
     const roleToCheck = updateUserDto.role || existingUser.role;
     const storeIdToCheck = updateUserDto.storeId !== undefined ? updateUserDto.storeId : existingUser.storeId;
+    const phoneToCheck = normalizedPhoneNumber ?? existingUser.phoneNumber;
 
     if (roleToCheck === UserRole.SALES && !storeIdToCheck) {
       throw new BadRequestException('Store ID is required for SALES role');
+    }
+    if (roleToCheck === UserRole.SALES && !phoneToCheck) {
+      throw new BadRequestException('Phone number is required for SALES role');
     }
 
     // Validate store exists if storeId is provided
@@ -178,8 +242,12 @@ export class UsersService {
     if (updateUserDto.lastName !== undefined) {
       updateData.lastName = updateUserDto.lastName;
     }
-    if (updateUserDto.email) {
-      updateData.email = updateUserDto.email;
+    if (normalizedEmail) {
+      updateData.email = normalizedEmail;
+    }
+
+    if (normalizedPhoneNumber) {
+      updateData.phoneNumber = normalizedPhoneNumber;
     }
 
     if (updateUserDto.role) {
@@ -202,6 +270,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        phoneNumber: true,
         firstName: true,
         lastName: true,
         role: true,

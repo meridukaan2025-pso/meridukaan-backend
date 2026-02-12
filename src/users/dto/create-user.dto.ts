@@ -1,14 +1,26 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsEnum, IsOptional, IsUUID, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
 export class CreateUserDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'newuser@meridukaan.com',
-    description: 'User email address (must be unique)',
+    description: 'User email address (optional, must be unique if provided)',
   })
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
+
+  @ApiPropertyOptional({
+    example: '+923001234567',
+    description: 'Phone number in E.164 format (required for SALES role)',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+[1-9]\d{7,14}$/, {
+    message: 'phoneNumber must be in E.164 format (e.g. +923001234567)',
+  })
+  phoneNumber?: string;
 
   @ApiProperty({
     example: 'securePassword123',

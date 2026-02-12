@@ -29,7 +29,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
     summary: 'Update own profile', 
-    description: 'Update your own profile information (firstName, lastName, email, password). Role and storeId cannot be changed through this endpoint.' 
+    description: 'Update your own profile information (firstName, lastName, email, phoneNumber, password). Role and storeId cannot be changed through this endpoint.' 
   })
   @ApiResponse({ 
     status: 200, 
@@ -39,6 +39,7 @@ export class AuthController {
       properties: {
         id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
         email: { type: 'string', example: 'updated@meridukaan.com' },
+        phoneNumber: { type: 'string', nullable: true, example: '+923001234567' },
         firstName: { type: 'string', example: 'John' },
         lastName: { type: 'string', example: 'Doe' },
         role: { type: 'string', enum: ['ADMIN', 'SALES', 'INVENTORY', 'PURCHASE'], example: 'SALES' },
@@ -79,7 +80,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ 
     summary: 'User signup', 
-    description: 'Create a new user account and receive JWT token. Store ID is required for SALES role.' 
+    description: 'Create a new user account and receive JWT token. Store ID and phone number are required for SALES role. Email is optional.' 
   })
   @ApiResponse({ 
     status: 201, 
@@ -95,7 +96,8 @@ export class AuthController {
           type: 'object',
           properties: {
             id: { type: 'string', example: '4158f662-9e15-42ef-9c4e-345b9465693c' },
-            email: { type: 'string', example: 'newuser@meridukaan.com' },
+            email: { type: 'string', nullable: true, example: 'newuser@meridukaan.com' },
+            phoneNumber: { type: 'string', nullable: true, example: '+923001234567' },
             role: { type: 'string', enum: ['ADMIN', 'SALES', 'INVENTORY', 'PURCHASE'], example: 'SALES' },
             storeId: { type: 'string', nullable: true, example: '4158f662-9e15-42ef-9c4e-345b9465693c' }
           }
@@ -103,7 +105,7 @@ export class AuthController {
       }
     }
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid input or store ID required for SALES role' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid input, missing store ID, or missing phone number for SALES role' })
   @ApiResponse({ status: 409, description: 'Conflict - User with this email already exists' })
   async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
@@ -159,6 +161,18 @@ export class AuthController {
   }
 
   @Public()
+  @Post('firebase/sales')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login with Firebase ID token (sales)',
+    description: 'Verify Firebase ID token for sales users using phone number and issue JWT',
+  })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async firebaseSalesLogin(@Body() dto: FirebaseLoginDto) {
+    return this.authService.loginWithFirebase(dto, UserRole.SALES, { requirePhoneNumber: true });
+  }
+
+  @Public()
   @Post('firebase/admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -190,4 +204,3 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 }
-
