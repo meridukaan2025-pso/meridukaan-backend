@@ -47,6 +47,32 @@
       "name": "Public APIs",
       "item": [
         {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint for monitoring and container health checks. Returns status and timestamp."
+          }
+        },
+        {
+          "name": "API Information",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Get API information including version, documentation URL, and all available endpoints."
+          }
+        },
+        {
           "name": "Get All Stores",
           "request": {
             "method": "GET",
@@ -225,14 +251,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeName\": \"My New Store\",\n  \"storeRegion\": \"Punjab\",\n  \"storeCity\": \"Lahore\"\n}"
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"email\": \"newsales@meridukaan.com\",\n  \"password\": \"securePassword123\",\n  \"role\": \"SALES\",\n  \"storeName\": \"My New Store\",\n  \"storeRegion\": \"Punjab\",\n  \"storeCity\": \"Lahore\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/signup",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "signup"]
             },
-            "description": "Create a new user account and receive JWT token. \n\n**New Flow (Recommended):** Provide storeName (and optionally storeRegion, storeCity) - API will create store automatically and assign storeId.\n\n**Alternative:** Provide storeId (existing store) - use GET /stores to get a store ID first.\n\nFor SALES role, either storeName or storeId is required."
+            "description": "Create a new user account and receive JWT token.\n\n**Required Fields:**\n- `password` (minimum 6 characters)\n- `role` (ADMIN, SALES, INVENTORY, PURCHASE)\n\n**Optional Fields:**\n- `phoneNumber` (E.164 format, e.g. +923001234567) - **Required for SALES role**\n- `email` (optional, must be unique if provided)\n- `firstName` (optional)\n- `lastName` (optional)\n\n**Store Assignment (choose one):**\n1. **Create new store:** Provide `storeName` (and optionally `storeRegion`, `storeCity`) - API will create store automatically and assign storeId\n2. **Use existing store:** Provide `storeId` (UUID) - use GET /stores to get a store ID first\n\n**For SALES role:** Either `storeName` or `storeId` is required, and `phoneNumber` is required."
           }
         },
         {
@@ -284,14 +310,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"updated@meridukaan.com\",\n  \"password\": \"newPassword123\"\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"updated@meridukaan.com\",\n  \"phoneNumber\": \"+923001234567\",\n  \"password\": \"newPassword123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/me",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "me"]
             },
-            "description": "Update your own profile information (firstName, lastName, email, password). All fields are optional. Role and storeId cannot be changed through this endpoint - use PUT /users/:id (ADMIN only) for those. Accessible by all authenticated users."
+            "description": "Update your own profile information (firstName, lastName, email, phoneNumber, password). All fields are optional. Role and storeId cannot be changed through this endpoint - use PUT /users/:id (ADMIN only) for those. Accessible by all authenticated users."
           }
         },
         {
@@ -420,6 +446,45 @@
               "path": ["auth", "firebase", "admin"]
             },
             "description": "Verify Firebase ID token for admin users and issue JWT."
+          }
+        },
+        {
+          "name": "Login with Firebase (Sales)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    if (jsonData.user.storeId) {",
+                  "        pm.collectionVariables.set('storeId', jsonData.user.storeId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase", "sales"]
+            },
+            "description": "Verify Firebase ID token for sales users using phone number and issue JWT. Requires phone number in Firebase token."
           }
         }
       ]
