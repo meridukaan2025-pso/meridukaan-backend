@@ -176,19 +176,6 @@ export class AuthController {
   }
 
   @Public()
-  @Post('sales/dev-get-reset-token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: '[Dev only] Get reset token for test phone without OTP',
-    description: 'When NODE_ENV=development and phone matches TEST_RESET_PHONE (+923001234567). Use to test reset page in browser without Firebase.',
-  })
-  @ApiResponse({ status: 200, description: 'Returns token and phoneNumber' })
-  @ApiResponse({ status: 400, description: 'Not allowed or no sales user for this phone' })
-  async salesDevGetResetToken(@Body() dto: ForgotPasswordByPhoneDto) {
-    return this.authService.devGetResetTokenForTestPhone(dto.phoneNumber);
-  }
-
-  @Public()
   @Post('sales/reset-password-with-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

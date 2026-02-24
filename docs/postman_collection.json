@@ -449,6 +449,50 @@
           }
         },
         {
+          "name": "Request reset token after OTP (Sales)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token-after-phone-otp>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sales/request-reset-token-after-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sales", "request-reset-token-after-otp"]
+            },
+            "description": "After Firebase phone OTP verify, exchange idToken for token + phoneNumber. Frontend redirects to /sales/reset-password with these in URL."
+          }
+        },
+        {
+          "name": "Reset password with OTP (Sales)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token>\",\n  \"newPassword\": \"NewStrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sales/reset-password-with-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sales", "reset-password-with-otp"]
+            },
+            "description": "Reset password after phone OTP verification (idToken + newPassword). No reset link."
+          }
+        },
+        {
           "name": "Login with Firebase",
           "request": {
             "method": "POST",

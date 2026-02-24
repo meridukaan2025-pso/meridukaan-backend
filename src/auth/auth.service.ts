@@ -402,37 +402,6 @@ export class AuthService {
     };
   }
 
-  /**
-   * Dev only: get reset token for a test phone without OTP. Use for testing the reset page in browser.
-   * Allowed only when NODE_ENV=development and phone matches TEST_RESET_PHONE (default +923001234567).
-   */
-  async devGetResetTokenForTestPhone(phoneNumber: string) {
-    const allowed =
-      this.configService.get<string>('NODE_ENV') === 'development' &&
-      this.normalizePhoneNumber(phoneNumber) === this.normalizePhoneNumber(
-        this.configService.get<string>('TEST_RESET_PHONE') || '+923001234567',
-      );
-    if (!allowed) {
-      throw new BadRequestException('Not allowed');
-    }
-    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-    const user = await this.prisma.user.findFirst({
-      where: { phoneNumber: normalizedPhone!, role: UserRole.SALES },
-    });
-    if (!user) {
-      throw new BadRequestException('No sales user found for this phone. Run seed-test-sales-forgot-reset first.');
-    }
-    const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
-    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
-    const token = randomBytes(32).toString('hex');
-    const tokenHash = this.hashResetToken(token);
-    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
-    await this.prisma.passwordResetToken.create({
-      data: { userId: user.id, tokenHash, expiresAt },
-    });
-    return { token, phoneNumber: normalizedPhone! };
-  }
-
   async resetPasswordByPhone(dto: ResetPasswordByPhoneDto) {
     const normalizedPhone = this.normalizePhoneNumber(dto.phoneNumber);
     const tokenHash = this.hashResetToken(dto.token);

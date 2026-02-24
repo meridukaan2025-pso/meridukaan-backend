@@ -27,7 +27,7 @@
       "put": {
         "operationId": "AuthController_updateProfile",
         "summary": "Update own profile",
-        "description": "Update your own profile information (firstName, lastName, email, password). Role and storeId cannot be changed through this endpoint.",
+        "description": "Update your own profile information (firstName, lastName, email, phoneNumber, password). Role and storeId cannot be changed through this endpoint.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -54,6 +54,11 @@
                     "email": {
                       "type": "string",
                       "example": "updated@meridukaan.com"
+                    },
+                    "phoneNumber": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "+923001234567"
                     },
                     "firstName": {
                       "type": "string",
@@ -167,7 +172,7 @@
       "post": {
         "operationId": "AuthController_signup",
         "summary": "User signup",
-        "description": "Create a new user account and receive JWT token. Store ID is required for SALES role.",
+        "description": "Create a new user account and receive JWT token. Store ID and phone number are required for SALES role. Email is optional.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -200,7 +205,13 @@
                         },
                         "email": {
                           "type": "string",
+                          "nullable": true,
                           "example": "newuser@meridukaan.com"
+                        },
+                        "phoneNumber": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "+923001234567"
                         },
                         "role": {
                           "type": "string",
@@ -225,7 +236,7 @@
             }
           },
           "400": {
-            "description": "Bad request - Invalid input or store ID required for SALES role"
+            "description": "Bad request - Invalid input, missing store ID, or missing phone number for SALES role"
           },
           "409": {
             "description": "Conflict - User with this email already exists"
@@ -303,6 +314,136 @@
         ]
       }
     },
+    "/auth/sales/forgot-password": {
+      "post": {
+        "operationId": "AuthController_salesForgotPassword",
+        "summary": "Request password reset (sales, by phone)",
+        "description": "Request password reset for sales users by phone number. Returns resetUrl to display or send via SMS.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordByPhoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset URL returned (or message if account not found)"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/sales/reset-password": {
+      "post": {
+        "operationId": "AuthController_salesResetPassword",
+        "summary": "Reset password (sales, by phone)",
+        "description": "Reset password using token sent to phone (or from reset link)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordByPhoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated successfully"
+          },
+          "400": {
+            "description": "Invalid or expired token"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/sales/request-reset-token-after-otp": {
+      "post": {
+        "operationId": "AuthController_salesRequestResetTokenAfterOtp",
+        "summary": "Get reset token after OTP (sales)",
+        "description": "After Firebase phone OTP verify, exchange idToken for reset token + phoneNumber. Frontend redirects to /sales/reset-password with these in URL.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirebaseLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns token and phoneNumber for redirect"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/sales/reset-password-with-otp": {
+      "post": {
+        "operationId": "AuthController_salesResetPasswordWithOtp",
+        "summary": "Reset password (sales) after phone OTP verification",
+        "description": "After user verifies phone via Firebase OTP, send idToken + newPassword. No reset link – OTP proves ownership.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordWithVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated successfully"
+          },
+          "400": {
+            "description": "Invalid token or no sales account for this phone"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
     "/auth/reset-password": {
       "post": {
         "operationId": "AuthController_resetPassword",
@@ -342,6 +483,37 @@
         "operationId": "AuthController_firebaseLogin",
         "summary": "Login with Firebase ID token",
         "description": "Verify Firebase ID token and issue JWT",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirebaseLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/firebase/sales": {
+      "post": {
+        "operationId": "AuthController_firebaseSalesLogin",
+        "summary": "Login with Firebase ID token (sales)",
+        "description": "Verify Firebase ID token for sales users using phone number and issue JWT",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -3015,6 +3187,11 @@
             "example": "updated@meridukaan.com",
             "description": "User email address (must be unique)"
           },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (must be unique)"
+          },
           "password": {
             "type": "string",
             "example": "newPassword123",
@@ -3056,10 +3233,15 @@
       "SignupDto": {
         "type": "object",
         "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (required for SALES role)"
+          },
           "email": {
             "type": "string",
             "example": "newuser@meridukaan.com",
-            "description": "User email address (must be unique)"
+            "description": "User email address (optional, must be unique if provided)"
           },
           "password": {
             "type": "string",
@@ -3103,7 +3285,6 @@
           }
         },
         "required": [
-          "email",
           "password",
           "role"
         ]
@@ -3126,6 +3307,77 @@
           "redirectUrl"
         ]
       },
+      "ForgotPasswordByPhoneDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (e.g. +923001234567)"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "example": "https://app.meridukaan.com/sales/reset-password",
+            "description": "Frontend URL where the user will reset their password (optional)"
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
+      "ResetPasswordByPhoneDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (e.g. +923001234567)"
+          },
+          "token": {
+            "type": "string",
+            "example": "7f7a9f...reset-token..."
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewStrongPassword123"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "token",
+          "newPassword"
+        ]
+      },
+      "FirebaseLoginDto": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...",
+            "description": "Firebase ID token from client"
+          }
+        },
+        "required": [
+          "idToken"
+        ]
+      },
+      "ResetPasswordWithVerificationDto": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "description": "Firebase ID token after phone OTP verification"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NewStrongPassword123"
+          }
+        },
+        "required": [
+          "idToken",
+          "newPassword"
+        ]
+      },
       "ResetPasswordDto": {
         "type": "object",
         "properties": {
@@ -3146,19 +3398,6 @@
           "email",
           "token",
           "newPassword"
-        ]
-      },
-      "FirebaseLoginDto": {
-        "type": "object",
-        "properties": {
-          "idToken": {
-            "type": "string",
-            "example": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...",
-            "description": "Firebase ID token from client"
-          }
-        },
-        "required": [
-          "idToken"
         ]
       },
       "StoreResponseDto": {
@@ -3406,7 +3645,12 @@
           "email": {
             "type": "string",
             "example": "newuser@meridukaan.com",
-            "description": "User email address (must be unique)"
+            "description": "User email address (optional, must be unique if provided)"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (required for SALES role)"
           },
           "password": {
             "type": "string",
@@ -3435,7 +3679,6 @@
           }
         },
         "required": [
-          "email",
           "password",
           "role"
         ]
@@ -3457,6 +3700,11 @@
             "type": "string",
             "example": "updated@meridukaan.com",
             "description": "User email address (must be unique)"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (must be unique)"
           },
           "password": {
             "type": "string",
