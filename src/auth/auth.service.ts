@@ -8,7 +8,10 @@ import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ForgotPasswordByPhoneDto } from './dto/forgot-password-by-phone.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResetPasswordByPhoneDto } from './dto/reset-password-by-phone.dto';
+import { ResetPasswordWithVerificationDto } from './dto/reset-password-with-verification.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { UserRole } from '@prisma/client';
 import { StoresService } from '../stores/stores.service';
@@ -319,6 +322,13 @@ export class AuthService {
     return url.toString();
   }
 
+  private buildResetUrlWithPhone(redirectUrl: string, token: string, phoneNumber: string) {
+    const url = new URL(redirectUrl);
+    url.searchParams.set('token', token);
+    url.searchParams.set('phoneNumber', encodeURIComponent(phoneNumber));
+    return url.toString();
+  }
+
   async requestPasswordReset(dto: ForgotPasswordDto, requiredRole?: UserRole) {
     const normalizedEmail = this.normalizeEmail(dto.email);
     const user = await this.prisma.user.findFirst({
@@ -351,6 +361,176 @@ export class AuthService {
     await this.emailService.sendPasswordResetEmail(user.email, resetUrl);
 
     return { message: 'If the account exists, a reset link will be sent.' };
+  }
+
+  async requestPasswordResetByPhone(dto: ForgotPasswordByPhoneDto) {
+    const normalizedPhone = this.normalizePhoneNumber(dto.phoneNumber);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        phoneNumber: normalizedPhone,
+        role: UserRole.SALES,
+      },
+    });
+
+    if (!user) {
+      return { message: 'If the account exists, a reset link will be sent.' };
+    }
+
+    const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashResetToken(token);
+
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    const baseUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const path = dto.redirectUrl?.startsWith('http')
+      ? dto.redirectUrl
+      : `${baseUrl}${dto.redirectUrl && dto.redirectUrl.startsWith('/') ? dto.redirectUrl : '/sales/reset-password'}`;
+    const resetUrl = this.buildResetUrlWithPhone(path, token, normalizedPhone!);
+
+    return {
+      message: 'If the account exists, a reset link will be sent.',
+      resetUrl,
+    };
+  }
+
+  /**
+   * Dev only: get reset token for a test phone without OTP. Use for testing the reset page in browser.
+   * Allowed only when NODE_ENV=development and phone matches TEST_RESET_PHONE (default +923001234567).
+   */
+  async devGetResetTokenForTestPhone(phoneNumber: string) {
+    const allowed =
+      this.configService.get<string>('NODE_ENV') === 'development' &&
+      this.normalizePhoneNumber(phoneNumber) === this.normalizePhoneNumber(
+        this.configService.get<string>('TEST_RESET_PHONE') || '+923001234567',
+      );
+    if (!allowed) {
+      throw new BadRequestException('Not allowed');
+    }
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+    const user = await this.prisma.user.findFirst({
+      where: { phoneNumber: normalizedPhone!, role: UserRole.SALES },
+    });
+    if (!user) {
+      throw new BadRequestException('No sales user found for this phone. Run seed-test-sales-forgot-reset first.');
+    }
+    const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashResetToken(token);
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+    return { token, phoneNumber: normalizedPhone! };
+  }
+
+  async resetPasswordByPhone(dto: ResetPasswordByPhoneDto) {
+    const normalizedPhone = this.normalizePhoneNumber(dto.phoneNumber);
+    const tokenHash = this.hashResetToken(dto.token);
+
+    const resetToken = await this.prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        expiresAt: { gt: new Date() },
+        user: {
+          phoneNumber: normalizedPhone!,
+          role: UserRole.SALES,
+        },
+      },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.passwordResetToken.deleteMany({
+        where: { userId: resetToken.userId },
+      }),
+    ]);
+
+    return { message: 'Password updated successfully' };
+  }
+
+  /**
+   * After OTP verify: return reset token + phone so frontend can redirect to /sales/reset-password.
+   */
+  async requestResetTokenAfterOtp(dto: FirebaseLoginDto) {
+    const decoded = await this.firebaseService.verifyIdToken(dto.idToken);
+    const phoneNumber = this.normalizePhoneNumber(decoded.phone_number);
+    if (!phoneNumber) {
+      throw new BadRequestException('Firebase token must contain phone number');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        phoneNumber,
+        role: UserRole.SALES,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('No sales account found for this phone number');
+    }
+
+    const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashResetToken(token);
+
+    await this.prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+    await this.prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+
+    return { token, phoneNumber };
+  }
+
+  /**
+   * Reset password for sales after phone OTP verification (Firebase idToken).
+   * No reset link – user proves ownership via OTP, then sets new password.
+   */
+  async resetPasswordWithFirebaseVerification(dto: ResetPasswordWithVerificationDto) {
+    const decoded = await this.firebaseService.verifyIdToken(dto.idToken);
+    const phoneNumber = this.normalizePhoneNumber(decoded.phone_number);
+    if (!phoneNumber) {
+      throw new BadRequestException('Firebase token must contain phone number');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        phoneNumber,
+        role: UserRole.SALES,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('No sales account found for this phone number');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    return { message: 'Password updated successfully' };
   }
 
   async resetPassword(dto: ResetPasswordDto) {

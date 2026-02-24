@@ -405,6 +405,50 @@
           }
         },
         {
+          "name": "Forgot Password (Sales, by phone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"redirectUrl\": \"http://localhost:3000/sales/reset-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sales/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sales", "forgot-password"]
+            },
+            "description": "Request password reset for sales users by phone number. Returns resetUrl to display or send via SMS."
+          }
+        },
+        {
+          "name": "Reset Password (Sales, by phone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"token\": \"<reset-token>\",\n  \"newPassword\": \"NewStrongPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/sales/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sales", "reset-password"]
+            },
+            "description": "Reset password for sales users using phone number + token."
+          }
+        },
+        {
           "name": "Login with Firebase",
           "request": {
             "method": "POST",

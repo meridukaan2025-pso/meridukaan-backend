@@ -31,7 +31,9 @@
     "scripts:seed-invoices": "ts-node scripts/seed-invoices.ts",
     "scripts:count-invoices": "ts-node scripts/count-invoices.ts",
     "scripts:delete-all-invoices": "ts-node scripts/delete-all-invoices.ts",
-    "scripts:create-sales-phone-user": "ts-node scripts/create-sales-phone-user.ts"
+    "scripts:create-sales-phone-user": "ts-node scripts/create-sales-phone-user.ts",
+    "scripts:seed-test-sales-forgot-reset": "ts-node scripts/seed-test-sales-forgot-reset.ts",
+    "scripts:test-sales-forgot-reset-flow": "ts-node scripts/test-sales-forgot-reset-flow.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

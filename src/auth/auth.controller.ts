@@ -5,7 +5,10 @@ import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ForgotPasswordByPhoneDto } from './dto/forgot-password-by-phone.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ResetPasswordByPhoneDto } from './dto/reset-password-by-phone.dto';
+import { ResetPasswordWithVerificationDto } from './dto/reset-password-with-verification.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -133,6 +136,69 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Reset link sent if admin exists' })
   async adminForgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.requestPasswordReset(dto, UserRole.ADMIN);
+  }
+
+  @Public()
+  @Post('sales/forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset (sales, by phone)',
+    description: 'Request password reset for sales users by phone number. Returns resetUrl to display or send via SMS.',
+  })
+  @ApiResponse({ status: 200, description: 'Reset URL returned (or message if account not found)' })
+  async salesForgotPassword(@Body() dto: ForgotPasswordByPhoneDto) {
+    return this.authService.requestPasswordResetByPhone(dto);
+  }
+
+  @Public()
+  @Post('sales/reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password (sales, by phone)',
+    description: 'Reset password using token sent to phone (or from reset link)',
+  })
+  @ApiResponse({ status: 200, description: 'Password updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  async salesResetPassword(@Body() dto: ResetPasswordByPhoneDto) {
+    return this.authService.resetPasswordByPhone(dto);
+  }
+
+  @Public()
+  @Post('sales/request-reset-token-after-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get reset token after OTP (sales)',
+    description: 'After Firebase phone OTP verify, exchange idToken for reset token + phoneNumber. Frontend redirects to /sales/reset-password with these in URL.',
+  })
+  @ApiResponse({ status: 200, description: 'Returns token and phoneNumber for redirect' })
+  async salesRequestResetTokenAfterOtp(@Body() dto: FirebaseLoginDto) {
+    return this.authService.requestResetTokenAfterOtp(dto);
+  }
+
+  @Public()
+  @Post('sales/dev-get-reset-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '[Dev only] Get reset token for test phone without OTP',
+    description: 'When NODE_ENV=development and phone matches TEST_RESET_PHONE (+923001234567). Use to test reset page in browser without Firebase.',
+  })
+  @ApiResponse({ status: 200, description: 'Returns token and phoneNumber' })
+  @ApiResponse({ status: 400, description: 'Not allowed or no sales user for this phone' })
+  async salesDevGetResetToken(@Body() dto: ForgotPasswordByPhoneDto) {
+    return this.authService.devGetResetTokenForTestPhone(dto.phoneNumber);
+  }
+
+  @Public()
+  @Post('sales/reset-password-with-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password (sales) after phone OTP verification',
+    description: 'After user verifies phone via Firebase OTP, send idToken + newPassword. No reset link – OTP proves ownership.',
+  })
+  @ApiResponse({ status: 200, description: 'Password updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid token or no sales account for this phone' })
+  async salesResetPasswordWithOtp(@Body() dto: ResetPasswordWithVerificationDto) {
+    return this.authService.resetPasswordWithFirebaseVerification(dto);
   }
 
   @Public()
