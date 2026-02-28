@@ -179,7 +179,49 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             },
-            "description": "Authenticate user and receive JWT token"
+            "description": "Authenticate user with email and password"
+          }
+        },
+        {
+          "name": "Login by Phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    if (jsonData.user.role === 'ADMIN') {",
+                  "        pm.collectionVariables.set('adminToken', jsonData.access_token);",
+                  "    }",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    if (jsonData.user.storeId) {",
+                  "        pm.collectionVariables.set('storeId', jsonData.user.storeId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"password\": \"NewTest@456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login-by-phone",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login-by-phone"]
+            },
+            "description": "Authenticate user with phone number and password (e.g. sales users after password reset)"
           }
         },
         {
@@ -258,7 +300,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "signup"]
             },
-            "description": "Create a new user account and receive JWT token.\n\n**Required Fields:**\n- `password` (minimum 6 characters)\n- `role` (ADMIN, SALES, INVENTORY, PURCHASE)\n\n**Optional Fields:**\n- `phoneNumber` (E.164 format, e.g. +923001234567) - **Required for SALES role**\n- `email` (optional, must be unique if provided)\n- `firstName` (optional)\n- `lastName` (optional)\n\n**Store Assignment (choose one):**\n1. **Create new store:** Provide `storeName` (and optionally `storeRegion`, `storeCity`) - API will create store automatically and assign storeId\n2. **Use existing store:** Provide `storeId` (UUID) - use GET /stores to get a store ID first\n\n**For SALES role:** Either `storeName` or `storeId` is required, and `phoneNumber` is required."
+            "description": "Create a new user. **Phone number is primary** (required for SALES); **email is optional**.\n\n**Required:** password, role\n**Primary (SALES):** phoneNumber (E.164)\n**Optional:** email, firstName, lastName\n**Store:** storeName (creates new) or storeId (existing) - required for SALES"
           }
         },
         {
@@ -310,14 +352,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"updated@meridukaan.com\",\n  \"phoneNumber\": \"+923001234567\",\n  \"password\": \"newPassword123\"\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"+923001234567\",\n  \"email\": \"updated@meridukaan.com\",\n  \"password\": \"newPassword123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/me",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "me"]
             },
-            "description": "Update your own profile information (firstName, lastName, email, phoneNumber, password). All fields are optional. Role and storeId cannot be changed through this endpoint - use PUT /users/:id (ADMIN only) for those. Accessible by all authenticated users."
+            "description": "Update your own profile (phoneNumber primary, email optional). All fields optional. Role and storeId cannot be changed - use PUT /users/:id (ADMIN only)."
           }
         },
         {
@@ -537,7 +579,7 @@
           }
         },
         {
-          "name": "Login with Firebase (Sales)",
+          "name": "Sales Login (Phone + Password)",
           "event": [
             {
               "listen": "test",
@@ -565,14 +607,53 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}"
+              "raw": "{\n  \"phoneNumber\": \"+923001234567\",\n  \"password\": \"NewTest@456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/firebase/sales",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "firebase", "sales"]
             },
-            "description": "Verify Firebase ID token for sales users using phone number and issue JWT. Requires phone number in Firebase token."
+            "description": "Sales login with phone + password (primary). Use after password reset. Phone number is primary everywhere."
+          }
+        },
+        {
+          "name": "Sales Login (Firebase idToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.access_token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    if (jsonData.user.storeId) {",
+                  "        pm.collectionVariables.set('storeId', jsonData.user.storeId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<firebase-id-token-after-phone-otp>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/firebase/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "firebase", "sales"]
+            },
+            "description": "Sales login with Firebase idToken (after phone OTP verification). Same endpoint as phone+password - use either idToken OR phoneNumber+password."
           }
         }
       ]

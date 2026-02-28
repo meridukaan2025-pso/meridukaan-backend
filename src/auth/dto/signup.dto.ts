@@ -5,7 +5,7 @@ import { UserRole } from '@prisma/client';
 export class SignupDto {
   @ApiPropertyOptional({
     example: '+923001234567',
-    description: 'Phone number in E.164 format (required for SALES role)',
+    description: 'Phone number in E.164 format (primary; required for SALES role)',
   })
   @IsOptional()
   @IsString()
@@ -16,7 +16,7 @@ export class SignupDto {
 
   @ApiPropertyOptional({
     example: 'newuser@meridukaan.com',
-    description: 'User email address (optional, must be unique if provided)',
+    description: 'Email (optional, secondary to phone; must be unique if provided)',
   })
   @IsOptional()
   @IsEmail()

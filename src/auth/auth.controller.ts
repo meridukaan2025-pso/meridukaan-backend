@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Body, HttpCode, HttpStatus } from '@nestjs/
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginByPhoneDto } from './dto/login-by-phone.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -10,6 +11,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResetPasswordByPhoneDto } from './dto/reset-password-by-phone.dto';
 import { ResetPasswordWithVerificationDto } from './dto/reset-password-with-verification.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
+import { SalesLoginDto } from './dto/sales-login.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
@@ -71,11 +73,21 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @ApiOperation({ summary: 'User login', description: 'Authenticate user and receive JWT token' })
+  @ApiOperation({ summary: 'User login', description: 'Authenticate user with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Post('login-by-phone')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login by phone', description: 'Authenticate user with phone number and password (e.g. sales users after password reset)' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async loginByPhone(@Body() loginDto: LoginByPhoneDto) {
+    return this.authService.loginByPhone(loginDto);
   }
 
   @Public()
@@ -217,12 +229,13 @@ export class AuthController {
   @Post('firebase/sales')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Login with Firebase ID token (sales)',
-    description: 'Verify Firebase ID token for sales users using phone number and issue JWT',
+    summary: 'Sales login (phone primary)',
+    description: 'Login with Firebase idToken (after OTP) OR phoneNumber + password. Phone number is primary everywhere.',
   })
   @ApiResponse({ status: 200, description: 'Login successful' })
-  async firebaseSalesLogin(@Body() dto: FirebaseLoginDto) {
-    return this.authService.loginWithFirebase(dto, UserRole.SALES, { requirePhoneNumber: true });
+  @ApiResponse({ status: 400, description: 'Provide idToken OR phoneNumber+password' })
+  async firebaseSalesLogin(@Body() dto: SalesLoginDto) {
+    return this.authService.salesLogin(dto);
   }
 
   @Public()

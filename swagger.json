@@ -138,7 +138,7 @@
       "post": {
         "operationId": "AuthController_login",
         "summary": "User login",
-        "description": "Authenticate user and receive JWT token",
+        "description": "Authenticate user with email and password",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -146,6 +146,40 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "JWT-auth": []
+          }
+        ]
+      }
+    },
+    "/auth/login-by-phone": {
+      "post": {
+        "operationId": "AuthController_loginByPhone",
+        "summary": "Login by phone",
+        "description": "Authenticate user with phone number and password (e.g. sales users after password reset)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginByPhoneDto"
               }
             }
           }
@@ -512,15 +546,15 @@
     "/auth/firebase/sales": {
       "post": {
         "operationId": "AuthController_firebaseSalesLogin",
-        "summary": "Login with Firebase ID token (sales)",
-        "description": "Verify Firebase ID token for sales users using phone number and issue JWT",
+        "summary": "Sales login (phone primary)",
+        "description": "Login with Firebase idToken (after OTP) OR phoneNumber + password. Phone number is primary everywhere.",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FirebaseLoginDto"
+                "$ref": "#/components/schemas/SalesLoginDto"
               }
             }
           }
@@ -528,6 +562,9 @@
         "responses": {
           "200": {
             "description": "Login successful"
+          },
+          "400": {
+            "description": "Provide idToken OR phoneNumber+password"
           }
         },
         "tags": [
@@ -3182,15 +3219,15 @@
             "example": "Doe",
             "description": "Last name"
           },
-          "email": {
-            "type": "string",
-            "example": "updated@meridukaan.com",
-            "description": "User email address (must be unique)"
-          },
           "phoneNumber": {
             "type": "string",
             "example": "+923001234567",
-            "description": "Phone number in E.164 format (must be unique)"
+            "description": "Phone number in E.164 format (primary; must be unique)"
+          },
+          "email": {
+            "type": "string",
+            "example": "updated@meridukaan.com",
+            "description": "Email (optional, secondary to phone; must be unique)"
           },
           "password": {
             "type": "string",
@@ -3220,6 +3257,26 @@
           "password"
         ]
       },
+      "LoginByPhoneDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format (e.g. +923001234567)"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "User password (minimum 6 characters)",
+            "minLength": 6
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "password"
+        ]
+      },
       "UserRole": {
         "type": "string",
         "description": "User role",
@@ -3236,12 +3293,12 @@
           "phoneNumber": {
             "type": "string",
             "example": "+923001234567",
-            "description": "Phone number in E.164 format (required for SALES role)"
+            "description": "Phone number in E.164 format (primary; required for SALES role)"
           },
           "email": {
             "type": "string",
             "example": "newuser@meridukaan.com",
-            "description": "User email address (optional, must be unique if provided)"
+            "description": "Email (optional, secondary to phone; must be unique if provided)"
           },
           "password": {
             "type": "string",
@@ -3399,6 +3456,32 @@
           "token",
           "newPassword"
         ]
+      },
+      "SalesLoginDto": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...",
+            "description": "Firebase ID token (after phone OTP). Use this OR phoneNumber+password."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Phone number in E.164 format. Use with password for direct login (no Firebase)."
+          },
+          "phone": {
+            "type": "string",
+            "example": "+923001234567",
+            "description": "Alias for phoneNumber (same as phoneNumber)."
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "Password (use with phoneNumber for direct login).",
+            "minLength": 6
+          }
+        }
       },
       "StoreResponseDto": {
         "type": "object",

@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { LoginByPhoneDto } from './dto/login-by-phone.dto';
 import { SignupDto } from './dto/signup.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -13,6 +14,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResetPasswordByPhoneDto } from './dto/reset-password-by-phone.dto';
 import { ResetPasswordWithVerificationDto } from './dto/reset-password-with-verification.dto';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
+import { SalesLoginDto } from './dto/sales-login.dto';
 import { UserRole } from '@prisma/client';
 import { StoresService } from '../stores/stores.service';
 import { EmailService } from '../email/email.service';
@@ -66,6 +68,23 @@ export class AuthService {
     return result;
   }
 
+  async validateUserByPhone(phoneNumber: string, password: string): Promise<any> {
+    const normalized = this.normalizePhoneNumber(phoneNumber);
+    const user = await this.prisma.user.findFirst({
+      where: { phoneNumber: normalized },
+      include: { store: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const { passwordHash, ...result } = user;
+    return result;
+  }
+
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
@@ -77,6 +96,29 @@ export class AuthService {
       storeId: user.storeId,
     };
 
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        phoneNumber: user.phoneNumber ?? null,
+        firstName: user.firstName ?? null,
+        lastName: user.lastName ?? null,
+        role: user.role,
+        storeId: user.storeId,
+      },
+    };
+  }
+
+  async loginByPhone(loginDto: LoginByPhoneDto) {
+    const user = await this.validateUserByPhone(loginDto.phoneNumber, loginDto.password);
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      storeId: user.storeId,
+    };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -532,6 +574,43 @@ export class AuthService {
     ]);
 
     return { message: 'Password updated successfully' };
+  }
+
+  async salesLogin(dto: SalesLoginDto) {
+    if (dto.idToken) {
+      return this.loginWithFirebase(
+        { idToken: dto.idToken },
+        UserRole.SALES,
+        { requirePhoneNumber: true },
+      );
+    }
+    const phone = dto.phoneNumber || dto.phone;
+    if (!phone || !dto.password) {
+      throw new BadRequestException('Provide either idToken (Firebase OTP) or phoneNumber + password');
+    }
+    const user = await this.validateUserByPhone(phone, dto.password);
+    if (user.role !== UserRole.SALES) {
+      throw new UnauthorizedException('Access denied. This login is for sales users only.');
+    }
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      storeId: user.storeId,
+    };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        phoneNumber: user.phoneNumber ?? null,
+        firstName: user.firstName ?? null,
+        lastName: user.lastName ?? null,
+        role: user.role,
+        storeId: user.storeId,
+      },
+    };
   }
 
   async loginWithFirebase(

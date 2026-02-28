@@ -13,16 +13,8 @@ export class UpdateProfileDto {
   lastName?: string;
 
   @ApiPropertyOptional({
-    example: 'updated@meridukaan.com',
-    description: 'User email address (must be unique)',
-  })
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @ApiPropertyOptional({
     example: '+923001234567',
-    description: 'Phone number in E.164 format (must be unique)',
+    description: 'Phone number in E.164 format (primary; must be unique)',
   })
   @IsOptional()
   @IsString()
@@ -30,6 +22,14 @@ export class UpdateProfileDto {
     message: 'phoneNumber must be in E.164 format (e.g. +923001234567)',
   })
   phoneNumber?: string;
+
+  @ApiPropertyOptional({
+    example: 'updated@meridukaan.com',
+    description: 'Email (optional, secondary to phone; must be unique)',
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @ApiPropertyOptional({
     example: 'newPassword123',
