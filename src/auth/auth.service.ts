@@ -415,7 +415,10 @@ export class AuthService {
     });
 
     if (!user) {
-      return { message: 'If the account exists, a reset link will be sent.' };
+      return {
+        success: false,
+        message: 'No sales account found for this phone number.',
+      };
     }
 
     const ttlMinutes = Number(this.configService.get<string>('PASSWORD_RESET_TTL_MINUTES') || 60);
@@ -439,7 +442,8 @@ export class AuthService {
     const resetUrl = this.buildResetUrlWithPhone(path, token, normalizedPhone!);
 
     return {
-      message: 'If the account exists, a reset link will be sent.',
+      success: true,
+      message: 'Reset link generated. Share the resetUrl with the user (e.g. via SMS).',
       resetUrl,
     };
   }
