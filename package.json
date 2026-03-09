@@ -29,6 +29,8 @@
     "scripts:add-barcode-products": "ts-node scripts/add-barcode-products-from-docs.ts",
     "scripts:refine-db": "ts-node scripts/refine-db.ts",
     "scripts:seed-invoices": "ts-node scripts/seed-invoices.ts",
+    "scripts:seed-purchases": "ts-node scripts/seed-purchases.ts",
+    "scripts:seed-user-names": "ts-node scripts/seed-user-names.ts",
     "scripts:count-invoices": "ts-node scripts/count-invoices.ts",
     "scripts:delete-all-invoices": "ts-node scripts/delete-all-invoices.ts",
     "scripts:create-sales-phone-user": "ts-node scripts/create-sales-phone-user.ts",
